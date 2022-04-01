@@ -9,7 +9,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
-import org.hibernate.envers.AuditJoinTable;
 import org.hibernate.envers.Audited;
 
 @Entity
@@ -25,7 +24,6 @@ public class Comment extends PersistentObject {
     private String name;
 
     @ManyToOne
-    @AuditJoinTable
     @ToString.Exclude
     @JoinColumn(name = "article_id", nullable = false)
     private Article article;

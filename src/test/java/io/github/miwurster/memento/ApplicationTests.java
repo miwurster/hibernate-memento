@@ -9,6 +9,7 @@ import io.github.miwurster.memento.repository.CommentRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.history.RevisionMetadata.RevisionType;
 
 @SpringBootTest
 class ApplicationTests {
@@ -25,19 +26,71 @@ class ApplicationTests {
 
     @Test
     void testShouldSaveAndLoadBasicEntities() {
+        // add article
         var article = articleRepository.save(Article.builder().name("Test").build());
-        assertThat(articleRepository.count()).isEqualTo(1);
+        assertThat(articleRepository.count()).isGreaterThanOrEqualTo(1);
+        var articleRev = articleRepository.findLastChangeRevision(article.getId()).orElseThrow();
+        assertThat(articleRev.getMetadata().getRevisionType()).isEqualTo(RevisionType.INSERT);
+        assertThat(articleRepository.findRevisions(article.getId()).getContent()).hasSize(1);
 
+        // add comment
         var comment = commentRepository.save(Comment.builder().name("Test").article(article).build());
-        assertThat(commentRepository.count()).isEqualTo(1);
+        assertThat(commentRepository.count()).isGreaterThanOrEqualTo(1);
+        var commentRev = commentRepository.findLastChangeRevision(comment.getId()).orElseThrow();
+        assertThat(commentRev.getMetadata().getRevisionType()).isEqualTo(RevisionType.INSERT);
+        assertThat(commentRepository.findRevisions(comment.getId()).getContent()).hasSize(1);
 
+        // article should also get an update
+        articleRev = articleRepository.findLastChangeRevision(article.getId()).orElseThrow();
+        assertThat(articleRev.getMetadata().getRevisionType()).isEqualTo(RevisionType.UPDATE);
+        assertThat(articleRepository.findRevisions(article.getId()).getContent()).hasSize(2);
+
+        // update comment
+        comment.setName("FooBarBazQuxDoo");
+        comment = commentRepository.save(comment);
+
+        // comment is updated
+        commentRev = commentRepository.findLastChangeRevision(comment.getId()).orElseThrow();
+        assertThat(commentRev.getMetadata().getRevisionType()).isEqualTo(RevisionType.UPDATE);
+        assertThat(commentRepository.findRevisions(comment.getId()).getContent()).hasSize(2);
+
+        // article has still only 2 changes
+        articleRev = articleRepository.findLastChangeRevision(article.getId()).orElseThrow();
+        assertThat(articleRev.getMetadata().getRevisionType()).isEqualTo(RevisionType.UPDATE);
+        assertThat(articleRepository.findRevisions(article.getId()).getContent()).hasSize(2);
+
+        // change article
         article = articleRepository.findById(article.getId()).orElseThrow();
-        assertThat(article.getComments()).hasSize(1);
+        article.setName("FooBarBaz");
+        article = articleRepository.save(article);
 
-        var rev1 = commentRepository.findLastChangeRevision(comment.getId()).orElseThrow();
-        assertThat(rev1.getRevisionNumber().orElseThrow()).isNotNull();
+        // article has 3 changes now
+        articleRev = articleRepository.findLastChangeRevision(article.getId()).orElseThrow();
+        assertThat(articleRev.getMetadata().getRevisionType()).isEqualTo(RevisionType.UPDATE);
+        assertThat(articleRepository.findRevisions(article.getId()).getContent()).hasSize(3);
 
-        var rev2 = articleRepository.findLastChangeRevision(article.getId()).orElseThrow();
-        assertThat(rev2.getRevisionNumber().orElseThrow()).isNotNull();
+        // comment has still 2 changes
+        commentRev = commentRepository.findLastChangeRevision(comment.getId()).orElseThrow();
+        assertThat(commentRev.getMetadata().getRevisionType()).isEqualTo(RevisionType.UPDATE);
+        assertThat(commentRepository.findRevisions(comment.getId()).getContent()).hasSize(2);
+
+        // delete comment
+        commentRepository.delete(comment);
+
+        // comment has 3 changes with delete
+        commentRev = commentRepository.findLastChangeRevision(comment.getId()).orElseThrow();
+        assertThat(commentRev.getMetadata().getRevisionType()).isEqualTo(RevisionType.DELETE);
+        assertThat(commentRepository.findRevisions(comment.getId()).getContent()).hasSize(3);
+
+        // article has 4 changes now
+        articleRev = articleRepository.findLastChangeRevision(article.getId()).orElseThrow();
+        assertThat(articleRev.getMetadata().getRevisionType()).isEqualTo(RevisionType.UPDATE);
+        assertThat(articleRepository.findRevisions(article.getId()).getContent()).hasSize(4);
+
+        /*
+         * Findings: Envers creates also a new revision of Article if a new Comment entity is stored. Envers also creates a new revision of Article
+         * if a Comment entity is deleted. However, Envers does not track any revision if a child entity of Article, i.e., Comment, is just changed.
+         * So, IMHO we therefore require a layer on top to also track such changes on child entities.
+         */
     }
 }

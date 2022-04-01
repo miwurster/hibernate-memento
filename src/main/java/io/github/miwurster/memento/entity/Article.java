@@ -2,7 +2,6 @@ package io.github.miwurster.memento.entity;
 
 import java.util.Set;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
 import javax.persistence.OneToMany;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -10,7 +9,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
-import org.hibernate.envers.AuditMappedBy;
 import org.hibernate.envers.Audited;
 
 @Entity
@@ -25,8 +23,7 @@ public class Article extends PersistentObject {
 
     private String name;
 
-    @AuditMappedBy(mappedBy = "article")
-    @OneToMany(mappedBy = "article", fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "article")
     private Set<Comment> comments;
 
     @Override

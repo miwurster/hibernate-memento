@@ -26,7 +26,9 @@ class ApplicationTests {
 
     @Test
     void testShouldUseMementoPattern() {
+
         // add article
+
         var article = new Article();
         article.setName("Test");
         article = articleManager.saveArticle(article);
@@ -36,6 +38,8 @@ class ApplicationTests {
         article = articleManager.updateArticle(article);
         assertThat(articleManager.getMementoRepository()).hasSize(2);
 
+        // add comment
+
         var comment = new Comment();
         comment.setName("Test");
         comment.setArticle(article);
@@ -43,12 +47,60 @@ class ApplicationTests {
         article = articleManager.addComment(article, comment);
         assertThat(articleManager.getMementoRepository()).hasSize(3);
 
+        comment = commentRepository.findById(comment.getId()).orElseThrow();
+        assertThat(comment.getName()).isEqualTo("Test");
+
+        // change comment and undo action
+
         comment.setName("Foo");
         articleManager.updateComment(article, comment);
         assertThat(articleManager.getMementoRepository()).hasSize(4);
 
+        comment = commentRepository.findById(comment.getId()).orElseThrow();
+        assertThat(comment.getName()).isEqualTo("Foo");
+
         articleManager.undo();
         assertThat(articleManager.getMementoRepository()).hasSize(5);
+
+        comment = commentRepository.findById(comment.getId()).orElseThrow();
+        assertThat(comment.getName()).isEqualTo("Test");
+
+        // add another new comment and undo
+
+        comment = new Comment();
+        comment.setName("BarBaz");
+        comment.setArticle(article);
+
+        article = articleManager.addComment(article, comment);
+        assertThat(articleManager.getMementoRepository()).hasSize(6);
+
+        article = articleRepository.findById(article.getId()).orElseThrow();
+        assertThat(article.getComments()).hasSize(2);
+
+        articleManager.undo();
+        assertThat(articleManager.getMementoRepository()).hasSize(7);
+
+        article = articleRepository.findById(article.getId()).orElseThrow();
+        assertThat(article.getComments()).hasSize(1);
+
+        // delete remaining comment and undo
+
+        comment = article.getComments().stream().findFirst().orElseThrow();
+        comment = commentRepository.findById(comment.getId()).orElseThrow();
+
+        article = articleManager.removeComment(article, comment);
+        assertThat(articleManager.getMementoRepository()).hasSize(8);
+
+        article = articleRepository.findById(article.getId()).orElseThrow();
+        assertThat(article.getComments()).hasSize(0);
+
+        articleManager.undo();
+        assertThat(articleManager.getMementoRepository()).hasSize(9);
+
+        article = articleRepository.findById(article.getId()).orElseThrow();
+        assertThat(article.getComments()).hasSize(1);
+
+        // just for debugging purpose
 
         var test = articleManager.getMementoRepository();
         System.out.println(test);

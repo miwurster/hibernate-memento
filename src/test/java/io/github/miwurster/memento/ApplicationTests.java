@@ -65,7 +65,23 @@ class ApplicationTests {
         comment = commentRepository.findById(comment.getId()).orElseThrow();
         assertThat(comment.getName()).isEqualTo("Test");
 
-        // add another new comment and undo
+        // change article and undo
+
+        article.setName("Article before undo");
+        articleManager.updateArticle(article);
+        assertThat(articleManager.getMementoRepository()).hasSize(6);
+
+        article.setName("Article after undo");
+        articleManager.updateArticle(article);
+        assertThat(articleManager.getMementoRepository()).hasSize(7);
+
+        articleManager.undo();
+        assertThat(articleManager.getMementoRepository()).hasSize(8);
+
+        article = articleRepository.findById(article.getId()).orElseThrow();
+        assertThat(article.getName()).isEqualTo("Article before undo");
+
+        //add another new comment and undo
 
         comment = new Comment();
         comment.setName("BarBaz");

@@ -8,7 +8,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import lombok.experimental.SuperBuilder;
 import org.hibernate.envers.Audited;
 
 @Entity
@@ -16,7 +15,6 @@ import org.hibernate.envers.Audited;
 @Setter
 @Audited
 @ToString
-@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Comment extends PersistentObject {

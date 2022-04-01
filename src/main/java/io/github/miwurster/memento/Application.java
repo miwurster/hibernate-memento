@@ -30,11 +30,17 @@ public class Application implements CommandLineRunner {
     @Override
     public void run(String... args) {
 
+        var article = new Article();
+        article.setName("Test");
+
         // add article
-        var article = articleRepository.save(Article.builder().name("Test").build());
+        article = articleRepository.save(article);
 
         // add comment
-        var comment = commentRepository.save(Comment.builder().name("Test").article(article).build());
+        var comment = new Comment();
+        comment.setName("Test");
+        comment.setArticle(article);
+        comment = commentRepository.save(comment);
 
         // update comment
         comment.setName("FooBarBazQuxDoo");

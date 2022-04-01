@@ -6,6 +6,7 @@ import io.github.miwurster.memento.entity.Article;
 import io.github.miwurster.memento.entity.Comment;
 import io.github.miwurster.memento.repository.ArticleRepository;
 import io.github.miwurster.memento.repository.CommentRepository;
+import io.github.miwurster.memento.service.ArticleManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,21 +21,35 @@ class ApplicationTests {
     @Autowired
     private CommentRepository commentRepository;
 
+    @Autowired
+    private ArticleManager articleManager;
+
     @Test
-    void contextLoads() {
+    void testShouldUseMementoPattern() {
+        // add article
+        var article = new Article();
+        article.setName("Test");
+        article = articleManager.saveArticle(article);
+
+        assertThat(articleManager.getMementoRepository()).hasSize(1);
     }
 
     @Test
     void testShouldSaveAndLoadBasicEntities() {
         // add article
-        var article = articleRepository.save(Article.builder().name("Test").build());
+        var article = new Article();
+        article.setName("Test");
+        article = articleRepository.save(article);
         assertThat(articleRepository.count()).isGreaterThanOrEqualTo(1);
         var articleRev = articleRepository.findLastChangeRevision(article.getId()).orElseThrow();
         assertThat(articleRev.getMetadata().getRevisionType()).isEqualTo(RevisionType.INSERT);
         assertThat(articleRepository.findRevisions(article.getId()).getContent()).hasSize(1);
 
         // add comment
-        var comment = commentRepository.save(Comment.builder().name("Test").article(article).build());
+        var comment = new Comment();
+        comment.setName("Test");
+        comment.setArticle(article);
+        comment = commentRepository.save(comment);
         assertThat(commentRepository.count()).isGreaterThanOrEqualTo(1);
         var commentRev = commentRepository.findLastChangeRevision(comment.getId()).orElseThrow();
         assertThat(commentRev.getMetadata().getRevisionType()).isEqualTo(RevisionType.INSERT);
@@ -92,5 +107,9 @@ class ApplicationTests {
          * if a Comment entity is deleted. However, Envers does not track any revision if a child entity of Article, i.e., Comment, is just changed.
          * So, IMHO we therefore require a layer on top to also track such changes on child entities.
          */
+    }
+
+    @Test
+    void contextLoads() {
     }
 }

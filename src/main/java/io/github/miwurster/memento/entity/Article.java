@@ -1,5 +1,6 @@
 package io.github.miwurster.memento.entity;
 
+import java.util.HashSet;
 import java.util.Set;
 import javax.persistence.Entity;
 import javax.persistence.OneToMany;
@@ -8,7 +9,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import lombok.experimental.SuperBuilder;
 import org.hibernate.envers.Audited;
 
 @Entity
@@ -16,7 +16,6 @@ import org.hibernate.envers.Audited;
 @Setter
 @Audited
 @ToString
-@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Article extends PersistentObject {
@@ -24,7 +23,7 @@ public class Article extends PersistentObject {
     private String name;
 
     @OneToMany(mappedBy = "article")
-    private Set<Comment> comments;
+    private Set<Comment> comments = new HashSet<>();
 
     @Override
     public boolean equals(Object o) {

@@ -12,7 +12,6 @@ import io.github.miwurster.memento.repository.CommentRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import javax.transaction.Transactional;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.history.Revision;
@@ -26,10 +25,10 @@ public class ArticleManager {
 
     private final CommentRepository commentRepository;
 
+    // TODO: This needs to be refactored into valid Entity objects to be stored in the database
     @Getter
     private final List<Memento> mementoRepository = new ArrayList<>();
 
-    @Transactional
     public Article saveArticle(Article a) {
         // save object
         var article = articleRepository.save(a);
@@ -40,7 +39,6 @@ public class ArticleManager {
         return article;
     }
 
-    @Transactional
     public Article updateArticle(Article a) {
         // get current state
         var article = articleRepository.findById(a.getId()).orElseThrow();
@@ -54,7 +52,6 @@ public class ArticleManager {
         return article;
     }
 
-    @Transactional
     public Article deleteArticle(Article a) {
         // get current state
         var article = articleRepository.findById(a.getId()).orElseThrow();
@@ -69,7 +66,6 @@ public class ArticleManager {
         return article;
     }
 
-    @Transactional
     public Article addComment(Article a, Comment c) {
         // get current state
         var article = articleRepository.findById(a.getId()).orElseThrow();
@@ -84,7 +80,6 @@ public class ArticleManager {
         return article;
     }
 
-    @Transactional
     public Article removeComment(Article a, Comment c) {
         // get current state
         var comment = commentRepository.findById(c.getId()).orElseThrow();

@@ -60,7 +60,7 @@ public class ArticleManager {
         // delete article
         articleRepository.delete(article);
         // create memento
-        var articleMemento = createMemento(article, MementoType.UPDATE);
+        var articleMemento = createMemento(article, MementoType.DELETE);
         mementoRepository.add(articleMemento);
         // return entity
         return article;
@@ -80,6 +80,23 @@ public class ArticleManager {
         return article;
     }
 
+    public Article updateComment(Article a, Comment c) {
+        // get current state
+        var article = articleRepository.findById(a.getId()).orElseThrow();
+        var comment = commentRepository.findById(c.getId()).orElseThrow();
+        // delete comment if it belongs to the given article
+        if (article.getComments().contains(comment)) {
+            comment.setName(c.getName());
+            commentRepository.save(comment);
+        }
+        // create memento with fresh state
+        article = articleRepository.findById(a.getId()).orElseThrow();
+        var articleMemento = createMemento(article, MementoType.UPDATE);
+        mementoRepository.add(articleMemento);
+        // return entity
+        return article;
+    }
+
     public Article removeComment(Article a, Comment c) {
         // get current state
         var comment = commentRepository.findById(c.getId()).orElseThrow();
@@ -90,6 +107,38 @@ public class ArticleManager {
         var articleMemento = createMemento(article, MementoType.UPDATE);
         mementoRepository.add(articleMemento);
         // return entity
+        return article;
+    }
+
+    public Article undo() {
+        // TODO: Lookup previous memento from database
+        var m = (ArticleMemento) getMementoRepository().get(getMementoRepository().size() - 2);
+
+        var articleRevision = articleRepository.findRevision(m.getArticle().getEntityId(), m.getArticle().getRevisionNumber()).orElseThrow();
+        var commentRevisions = m.getComments().stream()
+            .map(e -> commentRepository.findRevision(e.getEntityId(), e.getRevisionNumber()).orElseThrow())
+            .collect(Collectors.toList());
+
+        var article = articleRepository.findById(m.getArticle().getEntityId()).orElseThrow();
+        // update properties
+        article.setName(articleRevision.getEntity().getName());
+
+        var comments = commentRevisions.stream().map(r -> {
+            var comment = commentRepository.findById(r.getEntity().getId()).orElseThrow();
+            // update properties
+            comment.setName(r.getEntity().getName());
+            return comment;
+        }).collect(Collectors.toList());
+
+        // save new state
+        commentRepository.saveAll(comments);
+        article = articleRepository.save(article);
+
+        // create memento of fresh article
+        article = articleRepository.findById(article.getId()).orElseThrow();
+        var articleMemento = createMemento(article, MementoType.UPDATE);
+        mementoRepository.add(articleMemento);
+
         return article;
     }
 

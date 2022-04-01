@@ -30,8 +30,28 @@ class ApplicationTests {
         var article = new Article();
         article.setName("Test");
         article = articleManager.saveArticle(article);
-
         assertThat(articleManager.getMementoRepository()).hasSize(1);
+
+        article.setName("Foo");
+        article = articleManager.updateArticle(article);
+        assertThat(articleManager.getMementoRepository()).hasSize(2);
+
+        var comment = new Comment();
+        comment.setName("Test");
+        comment.setArticle(article);
+
+        article = articleManager.addComment(article, comment);
+        assertThat(articleManager.getMementoRepository()).hasSize(3);
+
+        comment.setName("Foo");
+        articleManager.updateComment(article, comment);
+        assertThat(articleManager.getMementoRepository()).hasSize(4);
+
+        articleManager.undo();
+        assertThat(articleManager.getMementoRepository()).hasSize(5);
+
+        var test = articleManager.getMementoRepository();
+        System.out.println(test);
     }
 
     @Test
@@ -103,9 +123,11 @@ class ApplicationTests {
         assertThat(articleRepository.findRevisions(article.getId()).getContent()).hasSize(4);
 
         /*
-         * Findings: Envers creates also a new revision of Article if a new Comment entity is stored. Envers also creates a new revision of Article
-         * if a Comment entity is deleted. However, Envers does not track any revision if a child entity of Article, i.e., Comment, is just changed.
-         * So, IMHO we therefore require a layer on top to also track such changes on child entities.
+         * Findings:
+         * (1) Envers creates also a new revision of Article if a new Comment entity is stored.
+         * (2) Envers also creates a new revision of Article if a Comment entity is deleted.
+         * (3) However, Envers does not track any revision if a child entity of Article, i.e., Comment, is just changed.
+         * (4) So, IMHO we therefore require a layer on top to also track such changes on child entities.
          */
     }
 

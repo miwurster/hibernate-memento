@@ -6,6 +6,7 @@ import io.github.miwurster.memento.entity.Article;
 import io.github.miwurster.memento.entity.Comment;
 import io.github.miwurster.memento.repository.ArticleRepository;
 import io.github.miwurster.memento.repository.CommentRepository;
+import io.github.miwurster.memento.repository.MementoRepository;
 import io.github.miwurster.memento.service.ArticleManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,9 @@ class ApplicationTests {
     private CommentRepository commentRepository;
 
     @Autowired
+    private MementoRepository mementoRepository;
+
+    @Autowired
     private ArticleManager articleManager;
 
     @Test
@@ -32,11 +36,11 @@ class ApplicationTests {
         var article = new Article();
         article.setName("Test");
         article = articleManager.saveArticle(article);
-        assertThat(articleManager.getMementoRepository()).hasSize(1);
+        assertThat(mementoRepository.findAll()).hasSize(1);
 
         article.setName("Foo");
         article = articleManager.updateArticle(article);
-        assertThat(articleManager.getMementoRepository()).hasSize(2);
+        assertThat(mementoRepository.findAll()).hasSize(2);
 
         // add comment
 
@@ -45,7 +49,7 @@ class ApplicationTests {
         comment.setArticle(article);
 
         article = articleManager.addComment(article, comment);
-        assertThat(articleManager.getMementoRepository()).hasSize(3);
+        assertThat(mementoRepository.findAll()).hasSize(3);
 
         comment = commentRepository.findById(comment.getId()).orElseThrow();
         assertThat(comment.getName()).isEqualTo("Test");
@@ -54,13 +58,13 @@ class ApplicationTests {
 
         comment.setName("Foo");
         articleManager.updateComment(article, comment);
-        assertThat(articleManager.getMementoRepository()).hasSize(4);
+        assertThat(mementoRepository.findAll()).hasSize(4);
 
         comment = commentRepository.findById(comment.getId()).orElseThrow();
         assertThat(comment.getName()).isEqualTo("Foo");
 
         articleManager.undo();
-        assertThat(articleManager.getMementoRepository()).hasSize(5);
+        assertThat(mementoRepository.findAll()).hasSize(5);
 
         comment = commentRepository.findById(comment.getId()).orElseThrow();
         assertThat(comment.getName()).isEqualTo("Test");
@@ -88,13 +92,13 @@ class ApplicationTests {
         comment.setArticle(article);
 
         article = articleManager.addComment(article, comment);
-        assertThat(articleManager.getMementoRepository()).hasSize(6);
+        assertThat(mementoRepository.findAll()).hasSize(6);
 
         article = articleRepository.findById(article.getId()).orElseThrow();
         assertThat(article.getComments()).hasSize(2);
 
         articleManager.undo();
-        assertThat(articleManager.getMementoRepository()).hasSize(7);
+        assertThat(mementoRepository.findAll()).hasSize(7);
 
         article = articleRepository.findById(article.getId()).orElseThrow();
         assertThat(article.getComments()).hasSize(1);
@@ -105,20 +109,20 @@ class ApplicationTests {
         comment = commentRepository.findById(comment.getId()).orElseThrow();
 
         article = articleManager.removeComment(article, comment);
-        assertThat(articleManager.getMementoRepository()).hasSize(8);
+        assertThat(mementoRepository.findAll()).hasSize(8);
 
         article = articleRepository.findById(article.getId()).orElseThrow();
         assertThat(article.getComments()).hasSize(0);
 
         articleManager.undo();
-        assertThat(articleManager.getMementoRepository()).hasSize(9);
+        assertThat(mementoRepository.findAll()).hasSize(9);
 
         article = articleRepository.findById(article.getId()).orElseThrow();
         assertThat(article.getComments()).hasSize(1);
 
         // just for debugging purpose
 
-        var test = articleManager.getMementoRepository();
+        var test = mementoRepository.findAll();
         System.out.println(test);
     }
 

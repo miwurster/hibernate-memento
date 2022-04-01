@@ -1,9 +1,7 @@
 package io.github.miwurster.memento;
 
-import io.github.miwurster.memento.entity.Article;
-import io.github.miwurster.memento.entity.Comment;
-import io.github.miwurster.memento.repository.ArticleRepository;
-import io.github.miwurster.memento.repository.CommentRepository;
+import io.github.miwurster.memento.repository.MementoRepository;
+import io.github.miwurster.memento.service.ArticleManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -15,9 +13,9 @@ import org.springframework.data.envers.repository.config.EnableEnversRepositorie
 @EnableEnversRepositories
 public class Application implements CommandLineRunner {
 
-    private final ArticleRepository articleRepository;
+    private final ArticleManager articleManager;
 
-    private final CommentRepository commentRepository;
+    private final MementoRepository mementoRepository;
 
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
@@ -29,28 +27,7 @@ public class Application implements CommandLineRunner {
      */
     @Override
     public void run(String... args) {
-
-        var article = new Article();
-        article.setName("Test");
-
-        // add article
-        article = articleRepository.save(article);
-
-        // add comment
-        var comment = new Comment();
-        comment.setName("Test");
-        comment.setArticle(article);
-        comment = commentRepository.save(comment);
-
-        // update comment
-        comment.setName("FooBarBazQuxDoo");
-        comment = commentRepository.save(comment);
-
-        // change article
-        article = articleRepository.findById(article.getId()).orElseThrow();
-        article.setName("FooBarBaz");
-        articleRepository.save(article);
-
-        commentRepository.delete(comment);
+        // var article = articleManager.saveArticle(new Article("Article 1", new HashSet<>()));
+        // articleManager.addComment(article, new Comment("Comment 1", article));
     }
 }

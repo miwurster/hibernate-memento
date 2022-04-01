@@ -5,14 +5,11 @@ import io.github.miwurster.memento.entity.Comment;
 import io.github.miwurster.memento.entity.PersistentObject;
 import io.github.miwurster.memento.model.ArticleMemento;
 import io.github.miwurster.memento.model.EntityRevision;
-import io.github.miwurster.memento.model.Memento;
 import io.github.miwurster.memento.model.MementoType;
 import io.github.miwurster.memento.repository.ArticleRepository;
 import io.github.miwurster.memento.repository.CommentRepository;
-import java.util.ArrayList;
-import java.util.List;
+import io.github.miwurster.memento.repository.MementoRepository;
 import java.util.stream.Collectors;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.history.Revision;
 import org.springframework.stereotype.Service;
@@ -25,16 +22,14 @@ public class ArticleManager {
 
     private final CommentRepository commentRepository;
 
-    // TODO: This needs to be refactored into valid Entity objects to be stored in the database
-    @Getter
-    private final List<Memento> mementoRepository = new ArrayList<>();
+    private final MementoRepository mementoRepository;
 
     public Article saveArticle(Article a) {
         // save object
         var article = articleRepository.save(a);
         // create memento
         var articleMemento = createMemento(article, MementoType.INSERT);
-        mementoRepository.add(articleMemento);
+        mementoRepository.save(articleMemento);
         // return entity
         return article;
     }
@@ -47,7 +42,7 @@ public class ArticleManager {
         article = articleRepository.save(article);
         // create memento
         var articleMemento = createMemento(article, MementoType.UPDATE);
-        mementoRepository.add(articleMemento);
+        mementoRepository.save(articleMemento);
         // return entity
         return article;
     }
@@ -61,7 +56,7 @@ public class ArticleManager {
         articleRepository.delete(article);
         // create memento
         var articleMemento = createMemento(article, MementoType.DELETE);
-        mementoRepository.add(articleMemento);
+        mementoRepository.save(articleMemento);
         // return entity
         return article;
     }
@@ -75,7 +70,7 @@ public class ArticleManager {
         // create memento with fresh state
         article = articleRepository.findById(a.getId()).orElseThrow();
         var articleMemento = createMemento(article, MementoType.UPDATE);
-        mementoRepository.add(articleMemento);
+        mementoRepository.save(articleMemento);
         // return entity
         return article;
     }
@@ -92,7 +87,7 @@ public class ArticleManager {
         // create memento with fresh state
         article = articleRepository.findById(a.getId()).orElseThrow();
         var articleMemento = createMemento(article, MementoType.UPDATE);
-        mementoRepository.add(articleMemento);
+        mementoRepository.save(articleMemento);
         // return entity
         return article;
     }
@@ -105,14 +100,15 @@ public class ArticleManager {
         // create memento with fresh state
         var article = articleRepository.findById(a.getId()).orElseThrow();
         var articleMemento = createMemento(article, MementoType.UPDATE);
-        mementoRepository.add(articleMemento);
+        mementoRepository.save(articleMemento);
         // return entity
         return article;
     }
 
     public Article undo() {
         // TODO: Lookup previous memento from database
-        var m = (ArticleMemento) getMementoRepository().get(getMementoRepository().size() - 2);
+        // var m = (ArticleMemento) getMementoRepository().get(getMementoRepository().size() - 2);
+        var m = new ArticleMemento();
 
         var articleRevision = articleRepository.findRevision(m.getArticle().getEntityId(), m.getArticle().getRevisionNumber()).orElseThrow();
         var commentRevisions = m.getComments().stream()
@@ -137,7 +133,7 @@ public class ArticleManager {
         // create memento of fresh article
         article = articleRepository.findById(article.getId()).orElseThrow();
         var articleMemento = createMemento(article, MementoType.UPDATE);
-        mementoRepository.add(articleMemento);
+        mementoRepository.save(articleMemento);
 
         return article;
     }
@@ -149,17 +145,17 @@ public class ArticleManager {
             .map(c -> commentRepository.findLastChangeRevision(c.getId()).orElseThrow())
             .collect(Collectors.toList());
         // create memento
-        return ArticleMemento.builder()
-            .type(type)
-            .article(createEntityRevision(articleRev))
-            .comments(commentsRev.stream().map(this::createEntityRevision).collect(Collectors.toList()))
-            .build();
+        ArticleMemento memento = new ArticleMemento();
+        memento.setType(type);
+        memento.setArticle(createEntityRevision(articleRev));
+        memento.setComments(commentsRev.stream().map(this::createEntityRevision).collect(Collectors.toList()));
+        return memento;
     }
 
     private EntityRevision createEntityRevision(Revision<Integer, ? extends PersistentObject> revision) {
-        return EntityRevision.builder()
-            .entityId(revision.getEntity().getId())
-            .revisionNumber(revision.getRequiredRevisionNumber())
-            .build();
+        EntityRevision rev = new EntityRevision();
+        rev.setEntityId(revision.getEntity().getId());
+        rev.setRevisionNumber(revision.getRequiredRevisionNumber());
+        return rev;
     }
 }

@@ -1,11 +1,20 @@
 package io.github.miwurster.memento.model;
 
-import lombok.Builder;
-import lombok.Data;
+import io.github.miwurster.memento.entity.PersistentObject;
+import javax.persistence.Entity;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
-@Data
-@Builder
-public class EntityRevision {
+@Entity
+@Getter
+@Setter
+@ToString
+@NoArgsConstructor
+@AllArgsConstructor
+public class EntityRevision extends PersistentObject {
 
     private Long entityId;
 

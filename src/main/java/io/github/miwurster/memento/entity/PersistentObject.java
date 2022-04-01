@@ -1,4 +1,4 @@
-package com.example.demo.entity;
+package io.github.miwurster.memento.entity;
 
 import java.util.Objects;
 import javax.persistence.GeneratedValue;

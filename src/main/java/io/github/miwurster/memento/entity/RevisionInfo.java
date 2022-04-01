@@ -1,4 +1,4 @@
-package com.example.demo.entity;
+package io.github.miwurster.memento.entity;
 
 import javax.persistence.Entity;
 import lombok.Getter;

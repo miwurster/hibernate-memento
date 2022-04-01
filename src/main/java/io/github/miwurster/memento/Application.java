@@ -1,4 +1,4 @@
-package com.example.demo;
+package io.github.miwurster.memento;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.SpringApplication;

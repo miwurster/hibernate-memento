@@ -1,16 +1,15 @@
-package com.example.demo.entity;
+package io.github.miwurster.memento.entity;
 
-import java.util.Set;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.OneToMany;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
-import org.hibernate.envers.AuditMappedBy;
+import org.hibernate.envers.AuditJoinTable;
 import org.hibernate.envers.Audited;
 
 @Entity
@@ -21,13 +20,15 @@ import org.hibernate.envers.Audited;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Article extends PersistentObject {
+public class Comment extends PersistentObject {
 
     private String name;
 
-    @AuditMappedBy(mappedBy = "article")
-    @OneToMany(mappedBy = "article", fetch = FetchType.EAGER)
-    private Set<Comment> comments;
+    @ManyToOne
+    @AuditJoinTable
+    @ToString.Exclude
+    @JoinColumn(name = "article_id", nullable = false)
+    private Article article;
 
     @Override
     public boolean equals(Object o) {

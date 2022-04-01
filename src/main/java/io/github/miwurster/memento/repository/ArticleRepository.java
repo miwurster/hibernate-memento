@@ -1,6 +1,6 @@
-package com.example.demo.repository;
+package io.github.miwurster.memento.repository;
 
-import com.example.demo.entity.Article;
+import io.github.miwurster.memento.entity.Article;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.repository.history.RevisionRepository;
 import org.springframework.stereotype.Repository;

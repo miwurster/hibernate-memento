@@ -73,14 +73,14 @@ class ApplicationTests {
 
         article.setName("Article before undo");
         articleManager.updateArticle(article);
-        assertThat(articleManager.getMementoRepository()).hasSize(6);
+        assertThat(mementoRepository.findAll()).hasSize(6);
 
         article.setName("Article after undo");
         articleManager.updateArticle(article);
-        assertThat(articleManager.getMementoRepository()).hasSize(7);
+        assertThat(mementoRepository.findAll()).hasSize(7);
 
         articleManager.undo();
-        assertThat(articleManager.getMementoRepository()).hasSize(8);
+        assertThat(mementoRepository.findAll()).hasSize(8);
 
         article = articleRepository.findById(article.getId()).orElseThrow();
         assertThat(article.getName()).isEqualTo("Article before undo");

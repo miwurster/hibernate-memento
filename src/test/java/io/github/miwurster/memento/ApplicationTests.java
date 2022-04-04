@@ -35,7 +35,7 @@ class ApplicationTests {
 
         var article = new Article();
         article.setName("Test");
-        article = articleManager.saveArticle(article);
+        article = articleManager.createArticle(article);
         assertThat(mementoRepository.findAll()).hasSize(1);
 
         article.setName("Foo");
@@ -48,7 +48,7 @@ class ApplicationTests {
         comment.setName("Test");
         comment.setArticle(article);
 
-        article = articleManager.addComment(article, comment);
+        article = articleManager.createComment(article, comment);
         assertThat(mementoRepository.findAll()).hasSize(3);
 
         comment = commentRepository.findById(comment.getId()).orElseThrow();
@@ -91,7 +91,7 @@ class ApplicationTests {
         comment.setName("BarBaz");
         comment.setArticle(article);
 
-        article = articleManager.addComment(article, comment);
+        article = articleManager.createComment(article, comment);
         assertThat(mementoRepository.findAll()).hasSize(9);
 
         article = articleRepository.findById(article.getId()).orElseThrow();
@@ -108,7 +108,7 @@ class ApplicationTests {
         comment = article.getComments().stream().findFirst().orElseThrow();
         comment = commentRepository.findById(comment.getId()).orElseThrow();
 
-        article = articleManager.removeComment(article, comment);
+        article = articleManager.deleteComment(article, comment);
         assertThat(mementoRepository.findAll()).hasSize(8);
 
         article = articleRepository.findById(article.getId()).orElseThrow();

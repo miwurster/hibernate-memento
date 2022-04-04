@@ -24,7 +24,7 @@ public class ArticleManager {
 
     private final ArticleMementoRepository mementoRepository;
 
-    public Article saveArticle(Article a) {
+    public Article createArticle(Article a) {
         // save object
         var article = articleRepository.save(a);
         // create memento
@@ -61,7 +61,7 @@ public class ArticleManager {
         return article;
     }
 
-    public Article addComment(Article a, Comment c) {
+    public Article createComment(Article a, Comment c) {
         // get current state
         var article = articleRepository.findById(a.getId()).orElseThrow();
         // add article
@@ -92,7 +92,7 @@ public class ArticleManager {
         return article;
     }
 
-    public Article removeComment(Article a, Comment c) {
+    public Article deleteComment(Article a, Comment c) {
         // get current state
         var comment = commentRepository.findById(c.getId()).orElseThrow();
         // remove comment

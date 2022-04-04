@@ -29,6 +29,16 @@ class ApplicationTests {
     private ArticleManager articleManager;
 
     @Test
+    void testShouldSaveAndRestoreDatapools() {
+        // TODO: Create Datapool-like entity
+        // TODO: Create DataSourceDescriptor-like entity
+        // TODO: Create File-like entity
+        // TODO: Create Repositories, etc.
+        // TODO: Create Memento abstraction
+        // ...
+    }
+
+    @Test
     void testShouldRestoreDeletedArticle() {
         // add article
         var article = new Article();

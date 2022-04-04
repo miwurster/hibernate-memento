@@ -29,6 +29,29 @@ class ApplicationTests {
     private ArticleManager articleManager;
 
     @Test
+    void testShouldRestoreDeletedArticle() {
+        // add article
+        var article = new Article();
+        article.setName("ArticleFoo");
+        article = articleManager.createArticle(article);
+
+        // add comment
+        var comment = new Comment();
+        comment.setName("Comment 1");
+        comment.setArticle(article);
+        article = articleManager.createComment(article, comment);
+
+        // delete article
+        article = articleManager.deleteArticle(article);
+
+        // undo and assert
+        article = articleManager.undo(article);
+
+        assertThat(article.getName()).isEqualTo("ArticleFoo");
+        assertThat(article.getComments()).hasSize(1);
+    }
+
+    @Test
     void testShouldRestoreCommentWithSameIdBeforeDelete() {
         // add article
         var article = new Article();

@@ -36,7 +36,6 @@ class ApplicationTests {
         var article = new Article();
         article.setName("ArticleFoo");
         article = articleManager.createArticle(article);
-        assertThat(mementoRepository.findAll()).hasSize(1);
 
         // add comment
 
@@ -45,7 +44,6 @@ class ApplicationTests {
         comment.setArticle(article);
 
         article = articleManager.createComment(article, comment);
-        assertThat(mementoRepository.findAll()).hasSize(2);
 
         // remember for assert
         var oldComment = article.getComments().stream().findFirst().orElseThrow();
@@ -53,12 +51,10 @@ class ApplicationTests {
         // delete comment
 
         article = articleManager.deleteComment(article, comment);
-        assertThat(mementoRepository.findAll()).hasSize(3);
 
         // undo and assert
 
         article = articleManager.undo(article);
-        assertThat(mementoRepository.findAll()).hasSize(4);
 
         var restoredComment = article.getComments().stream().findFirst().orElseThrow();
 

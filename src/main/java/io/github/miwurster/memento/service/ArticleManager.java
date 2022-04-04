@@ -6,9 +6,9 @@ import io.github.miwurster.memento.entity.PersistentObject;
 import io.github.miwurster.memento.model.ArticleMemento;
 import io.github.miwurster.memento.model.EntityRevision;
 import io.github.miwurster.memento.model.MementoType;
+import io.github.miwurster.memento.repository.ArticleMementoRepository;
 import io.github.miwurster.memento.repository.ArticleRepository;
 import io.github.miwurster.memento.repository.CommentRepository;
-import io.github.miwurster.memento.repository.MementoRepository;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.history.Revision;
@@ -22,13 +22,13 @@ public class ArticleManager {
 
     private final CommentRepository commentRepository;
 
-    private final MementoRepository mementoRepository;
+    private final ArticleMementoRepository mementoRepository;
 
     public Article saveArticle(Article a) {
         // save object
         var article = articleRepository.save(a);
         // create memento
-        var articleMemento = createMemento(article, MementoType.INSERT);
+        var articleMemento = createMemento(article, MementoType.CREATE);
         mementoRepository.save(articleMemento);
         // return entity
         return article;
@@ -105,17 +105,17 @@ public class ArticleManager {
         return article;
     }
 
-    public Article undo() {
-        // TODO: Lookup previous memento from database
-        // var m = (ArticleMemento) getMementoRepository().get(getMementoRepository().size() - 2);
-        var m = new ArticleMemento();
+    public Article undo(Article a) {
+        var article = articleRepository.findById(a.getId()).orElseThrow();
+        var mementos = mementoRepository.findAllByArticleId(article.getId());
+        var m = mementos.get(mementos.size() - 2);
 
         var articleRevision = articleRepository.findRevision(m.getArticle().getEntityId(), m.getArticle().getRevisionNumber()).orElseThrow();
         var commentRevisions = m.getComments().stream()
             .map(e -> commentRepository.findRevision(e.getEntityId(), e.getRevisionNumber()).orElseThrow())
             .collect(Collectors.toList());
 
-        var article = articleRepository.findById(m.getArticle().getEntityId()).orElseThrow();
+        article = articleRepository.findById(m.getArticle().getEntityId()).orElseThrow();
         // update properties
         article.setName(articleRevision.getEntity().getName());
 

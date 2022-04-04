@@ -63,7 +63,7 @@ class ApplicationTests {
         comment = commentRepository.findById(comment.getId()).orElseThrow();
         assertThat(comment.getName()).isEqualTo("Foo");
 
-        articleManager.undo();
+        articleManager.undo(article);
         assertThat(mementoRepository.findAll()).hasSize(5);
 
         comment = commentRepository.findById(comment.getId()).orElseThrow();
@@ -79,7 +79,7 @@ class ApplicationTests {
         articleManager.updateArticle(article);
         assertThat(mementoRepository.findAll()).hasSize(7);
 
-        articleManager.undo();
+        articleManager.undo(article);
         assertThat(mementoRepository.findAll()).hasSize(8);
 
         article = articleRepository.findById(article.getId()).orElseThrow();
@@ -97,7 +97,7 @@ class ApplicationTests {
         article = articleRepository.findById(article.getId()).orElseThrow();
         assertThat(article.getComments()).hasSize(2);
 
-        articleManager.undo();
+        articleManager.undo(article);
         assertThat(mementoRepository.findAll()).hasSize(7);
 
         article = articleRepository.findById(article.getId()).orElseThrow();
@@ -114,7 +114,7 @@ class ApplicationTests {
         article = articleRepository.findById(article.getId()).orElseThrow();
         assertThat(article.getComments()).hasSize(0);
 
-        articleManager.undo();
+        articleManager.undo(article);
         assertThat(mementoRepository.findAll()).hasSize(9);
 
         article = articleRepository.findById(article.getId()).orElseThrow();

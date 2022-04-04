@@ -9,6 +9,8 @@ import io.github.miwurster.memento.model.MementoType;
 import io.github.miwurster.memento.repository.ArticleMementoRepository;
 import io.github.miwurster.memento.repository.ArticleRepository;
 import io.github.miwurster.memento.repository.CommentRepository;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.history.Revision;
@@ -105,39 +107,6 @@ public class ArticleManager {
         return article;
     }
 
-    public Article undo(Article a) {
-        var article = articleRepository.findById(a.getId()).orElseThrow();
-        var mementos = mementoRepository.findAllByArticleId(article.getId());
-        var m = mementos.get(mementos.size() - 2);
-
-        var articleRevision = articleRepository.findRevision(m.getArticle().getEntityId(), m.getArticle().getRevisionNumber()).orElseThrow();
-        var commentRevisions = m.getComments().stream()
-            .map(e -> commentRepository.findRevision(e.getEntityId(), e.getRevisionNumber()).orElseThrow())
-            .collect(Collectors.toList());
-
-        article = articleRepository.findById(m.getArticle().getEntityId()).orElseThrow();
-        // update properties
-        article.setName(articleRevision.getEntity().getName());
-
-        var comments = commentRevisions.stream().map(r -> {
-            var comment = commentRepository.findById(r.getEntity().getId()).orElseThrow();
-            // update properties
-            comment.setName(r.getEntity().getName());
-            return comment;
-        }).collect(Collectors.toList());
-
-        // save new state
-        commentRepository.saveAll(comments);
-        article = articleRepository.save(article);
-
-        // create memento of fresh article
-        article = articleRepository.findById(article.getId()).orElseThrow();
-        var articleMemento = createMemento(article, MementoType.UPDATE);
-        mementoRepository.save(articleMemento);
-
-        return article;
-    }
-
     private ArticleMemento createMemento(Article article, MementoType type) {
         // collect revisions for
         var articleRev = articleRepository.findLastChangeRevision(article.getId()).orElseThrow();
@@ -157,5 +126,60 @@ public class ArticleManager {
         rev.setEntityId(revision.getEntity().getId());
         rev.setRevisionNumber(revision.getRequiredRevisionNumber());
         return rev;
+    }
+
+    public Article undo(Article a) {
+        var article = articleRepository.findById(a.getId()).orElseThrow();
+        var mementos = mementoRepository.findAllByArticleId(article.getId());
+        var m = mementos.get(mementos.size() - 2);
+
+        var articleRevision = articleRepository.findRevision(m.getArticle().getEntityId(), m.getArticle().getRevisionNumber()).orElseThrow();
+        var commentRevisions = m.getComments().stream()
+            .map(e -> commentRepository.findRevision(e.getEntityId(), e.getRevisionNumber()).orElseThrow())
+            .collect(Collectors.toList());
+
+        article = articleRepository.findById(m.getArticle().getEntityId()).orElseThrow();
+        // update properties
+        article.setName(articleRevision.getEntity().getName());
+
+        // update article
+        article = articleRepository.save(article);
+
+        var commentsToRestore = commentRevisions.stream().map(Revision::getEntity).collect(Collectors.toList());
+        for (Comment comment : commentsToRestore) {
+            comment.setArticle(article);
+        }
+
+        List<Comment> commentsToSave = new ArrayList<>();
+        List<Comment> commentsToDelete = new ArrayList<>();
+
+        for (Comment comment : article.getComments()) {
+            if (commentsToRestore.contains(comment)) {
+                // replace attributes
+                var i = commentsToRestore.indexOf(comment);
+                var commentToRestore = commentsToRestore.get(i);
+                comment.setName(commentToRestore.getName());
+
+                commentsToSave.add(comment);
+            } else {
+                commentsToDelete.add(comment);
+            }
+        }
+
+        for (Comment comment : commentsToRestore) {
+            if (!article.getComments().contains(comment)) {
+                commentsToSave.add(comment);
+            }
+        }
+
+        commentRepository.deleteAll(commentsToDelete);
+        commentRepository.saveAll(commentsToSave);
+
+        // create memento of fresh article
+        article = articleRepository.findById(article.getId()).orElseThrow();
+        var articleMemento = createMemento(article, MementoType.UPDATE);
+        mementoRepository.save(articleMemento);
+
+        return article;
     }
 }

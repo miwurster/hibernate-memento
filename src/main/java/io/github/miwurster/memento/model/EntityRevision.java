@@ -1,6 +1,7 @@
 package io.github.miwurster.memento.model;
 
 import io.github.miwurster.memento.entity.PersistentObject;
+import java.util.UUID;
 import javax.persistence.Entity;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -16,7 +17,7 @@ import lombok.ToString;
 @AllArgsConstructor
 public class EntityRevision extends PersistentObject {
 
-    private Long entityId;
+    private UUID entityId;
 
     private Integer revisionNumber;
 }

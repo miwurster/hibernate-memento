@@ -30,35 +30,29 @@ class ApplicationTests {
 
     @Test
     void testShouldRestoreCommentWithSameIdBeforeDelete() {
-
         // add article
-
         var article = new Article();
         article.setName("ArticleFoo");
         article = articleManager.createArticle(article);
 
         // add comment
-
         var comment = new Comment();
         comment.setName("Comment 1");
         comment.setArticle(article);
-
         article = articleManager.createComment(article, comment);
 
-        // remember for assert
-        var oldComment = article.getComments().stream().findFirst().orElseThrow();
+        // remember to assert later
+        var deletedComment = article.getComments().stream().findFirst().orElseThrow();
 
         // delete comment
-
         article = articleManager.deleteComment(article, comment);
 
         // undo and assert
-
         article = articleManager.undo(article);
-
         var restoredComment = article.getComments().stream().findFirst().orElseThrow();
 
-        assertThat(restoredComment.getId()).isEqualTo(oldComment.getId());
+        assertThat(restoredComment.getId()).isEqualTo(deletedComment.getId());
+        assertThat(restoredComment).isEqualTo(deletedComment);
     }
 
     @Test

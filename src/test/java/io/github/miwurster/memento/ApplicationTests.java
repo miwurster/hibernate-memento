@@ -92,13 +92,13 @@ class ApplicationTests {
         comment.setArticle(article);
 
         article = articleManager.addComment(article, comment);
-        assertThat(mementoRepository.findAll()).hasSize(6);
+        assertThat(mementoRepository.findAll()).hasSize(9);
 
         article = articleRepository.findById(article.getId()).orElseThrow();
         assertThat(article.getComments()).hasSize(2);
 
         articleManager.undo(article);
-        assertThat(mementoRepository.findAll()).hasSize(7);
+        assertThat(mementoRepository.findAll()).hasSize(10);
 
         article = articleRepository.findById(article.getId()).orElseThrow();
         assertThat(article.getComments()).hasSize(1);

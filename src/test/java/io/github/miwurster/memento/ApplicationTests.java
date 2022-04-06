@@ -1,7 +1,6 @@
 package io.github.miwurster.memento;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.InstanceOfAssertFactories.LOCAL_DATE_TIME;
 
 import io.github.miwurster.memento.entity.Article;
 import io.github.miwurster.memento.entity.Comment;
@@ -57,7 +56,7 @@ class ApplicationTests {
     FileRepository fileRepository;
 
     @Test
-    void testShouldSaveDatapoolWithDescriptorAndFiles() {
+    void testShouldCreateDatapoolWithDescriptorAndFiles() {
 
         //ARRANGE
 
@@ -99,6 +98,109 @@ class ApplicationTests {
 
         pool = dataPoolRepository.findById(pool.getId()).orElseThrow();
         assertThat(pool.getDataSourceDescriptors().contains(descriptor)).isTrue();
+
+    }
+
+    @Test
+    void testShouldUpdateDataPool() {
+
+        //ARRANGE
+        var pool = buildPool();
+        pool = dataPoolManager.createDataPool(pool);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(1);
+
+        //ACT
+        pool.setName("New funky name");
+        pool.setLicenceType("pay per click");
+        pool = dataPoolManager.updateDataPool(pool);
+
+        //ASSERT
+        assertThat(pool.getName()).isEqualTo("New funky name");
+        assertThat(pool.getLicenceType()).isEqualTo("pay per click");
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(2);
+
+    }
+
+    @Test
+    void testShouldDeleteDataPoolWithChildren() {
+
+        //ARRANGE
+
+        //persist data source descriptor
+        var descriptor = buildDescriptor();
+        descriptor = dataSourceDescriptorRepository.save(descriptor);
+
+        //persist file
+        var file = buildFile();
+        file = fileRepository.save(file);
+
+        List<File> files = new ArrayList<>();
+        files.add(file);
+
+        descriptor.setFiles(files);
+        descriptor = dataSourceDescriptorRepository.save(descriptor);
+
+        List<DataSourceDescriptor> dataSourceDescriptors = new ArrayList<>();
+        dataSourceDescriptors.add(descriptor);
+
+        var pool = buildPool();
+        pool.setDataSourceDescriptors(dataSourceDescriptors);
+
+        pool = dataPoolManager.createDataPool(pool);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(1);
+
+        //ACT
+        pool = dataPoolManager.deleteDataPool(pool);
+
+        //ASSERT
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(2);
+        assertThat(dataPoolRepository.findAll()).isEmpty();
+
+    }
+
+    @Test
+    void testShouldAddDataSourceDescriptorToDataPool() {
+
+        //ARRANGE
+        var pool = buildPool();
+        pool = dataPoolManager.createDataPool(pool);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(1);
+
+        var descriptor = buildDescriptor();
+        descriptor.setDataPool(pool);
+
+        //ACT
+        pool = dataPoolManager.addDataSourceDescriptorToDataPool(pool, descriptor);
+
+        //ASSERT
+        assertThat(pool.getDataSourceDescriptors()).contains(descriptor);
+        assertThat(dataSourceDescriptorRepository.findAll()).hasSize(1);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(2);
+
+    }
+
+    @Test
+    void testShouldUpdateDataSourceDescriptor() {
+
+        //ARRANGE
+        var pool = buildPool();
+        pool = dataPoolManager.createDataPool(pool);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(1);
+
+        var descriptor = buildDescriptor();
+        descriptor.setDescription("New description");
+        descriptor.setDataPool(pool);
+        pool = dataPoolManager.addDataSourceDescriptorToDataPool(pool, descriptor);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(2);
+
+        //ACT
+        pool = dataPoolManager.updateDataSourceDescriptor(pool, descriptor);
+
+        //ASSERT
+        assertThat(pool.getDataSourceDescriptors()).contains(descriptor);
+        assertThat(dataSourceDescriptorRepository.findAll()).hasSize(1);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(3);
+        assertThat(descriptor.getDescription()).isEqualTo("New description");
 
     }
 

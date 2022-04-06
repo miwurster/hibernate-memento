@@ -2,7 +2,6 @@ package io.github.miwurster.memento.service;
 
 import io.github.miwurster.memento.entity.DataPool;
 import io.github.miwurster.memento.entity.DataSourceDescriptor;
-import io.github.miwurster.memento.entity.File;
 import io.github.miwurster.memento.entity.PersistentObject;
 import io.github.miwurster.memento.model.DataPoolMemento;
 import io.github.miwurster.memento.model.DataSourceDescriptorMemento;
@@ -36,7 +35,7 @@ public class DataPoolManager {
 
     public DataPool createDataPool(DataPool dataPool) {
 
-        var savedDataPool = dataPoolRepository.findById(dataPool.getId()).orElseThrow();
+        var savedDataPool = dataPoolRepository.save(dataPool);
 
         var dataPoolMemento = createDataPoolMemento(savedDataPool, MementoType.CREATE);
         dataPoolMementoRepository.save(dataPoolMemento);
@@ -44,34 +43,97 @@ public class DataPoolManager {
         return savedDataPool;
     }
 
+    public DataPool updateDataPool(DataPool updatedDataPool) {
+
+        var savedDataPool = dataPoolRepository.findById(updatedDataPool.getId()).orElseThrow();
+        savedDataPool.setName(updatedDataPool.getName());
+        savedDataPool.setShortDescription(updatedDataPool.getShortDescription());
+        savedDataPool.setDescription(updatedDataPool.getDescription());
+        savedDataPool.setLicenceType(updatedDataPool.getLicenceType());
+        savedDataPool.setMetadata(updatedDataPool.getMetadata());
+
+        var dataPoolMemento = createDataPoolMemento(savedDataPool, MementoType.UPDATE);
+        dataPoolMementoRepository.save(dataPoolMemento);
+
+        return savedDataPool;
+    }
+
+    public DataPool deleteDataPool(DataPool dataPoolToDelete) {
+
+        //fetch data pool
+        var savedDataPool = dataPoolRepository.findById(dataPoolToDelete.getId()).orElseThrow();
+
+        // fetch DataSourceDescriptors
+        var descriptors = savedDataPool.getDataSourceDescriptors();
+
+        // iterate over descriptors and remove the files
+        for (DataSourceDescriptor descriptor : descriptors) {
+            fileRepository.deleteAll(descriptor.getFiles());
+        }
+
+        // remove descriptors
+        dataSourceDescriptorRepository.deleteAll(descriptors);
+
+        //remove pool
+        dataPoolRepository.delete(savedDataPool);
+
+        // create memento
+        var dataPoolMemento = createDataPoolMemento(savedDataPool, MementoType.DELETE);
+        dataPoolMementoRepository.save(dataPoolMemento);
+
+        return savedDataPool;
+    }
+
+    public DataPool addDataSourceDescriptorToDataPool(DataPool dataPool, DataSourceDescriptor dataSourceDescriptor) {
+
+        var persistedDataPool = dataPoolRepository.findById(dataPool.getId()).orElseThrow();
+        persistedDataPool.setDataSourceDescriptors(dataSourceDescriptor.getDataPool().getDataSourceDescriptors());
+
+        dataSourceDescriptorRepository.save(dataSourceDescriptor);
+
+        persistedDataPool = dataPoolRepository.findById(dataPool.getId()).orElseThrow();
+        var dataPoolMemento = createDataPoolMemento(persistedDataPool, MementoType.UPDATE);
+        dataPoolMementoRepository.save(dataPoolMemento);
+
+        return persistedDataPool;
+    }
+
+    public DataPool updateDataSourceDescriptor(DataPool dataPool, DataSourceDescriptor dataSourceDescriptor) {
+
+        var persistedDataPool = dataPoolRepository.findById(dataPool.getId()).orElseThrow();
+        var persistedDataSourceDescriptor = dataSourceDescriptorRepository.findById(
+            dataSourceDescriptor.getId()).orElseThrow();
+
+        if (persistedDataPool.getDataSourceDescriptors().contains(persistedDataSourceDescriptor)) {
+            persistedDataSourceDescriptor.setName(dataSourceDescriptor.getName());
+            persistedDataSourceDescriptor.setDescription(dataSourceDescriptor.getDescription());
+            dataSourceDescriptorRepository.save(persistedDataSourceDescriptor);
+        }
+
+        persistedDataPool = dataPoolRepository.findById(dataPool.getId()).orElseThrow();
+        var dataPoolMemento = createDataPoolMemento(persistedDataPool, MementoType.UPDATE);
+        dataPoolMementoRepository.save(dataPoolMemento);
+
+        return persistedDataPool;
+    }
+
     private DataPoolMemento createDataPoolMemento(DataPool dataPool, MementoType type) {
 
-        // collect revisions for data pool, data source descriptor and files
-        var pool = dataPoolRepository.findById(dataPool.getId()).orElseThrow();
-        var dataSourceDescriptor = dataSourceDescriptorRepository.findAllByDataPoolId(pool.getId());
+        var poolRev = dataPoolRepository.findLastChangeRevision(dataPool.getId()).orElseThrow();
+        var dataSourceDescriptor = dataPool.getDataSourceDescriptors();
 
-        List<Revision<Integer, File>> filesRev = new ArrayList<>();
+        List<DataSourceDescriptorMemento> descriptorMementos = new ArrayList<>();
+
         for (DataSourceDescriptor descriptor : dataSourceDescriptor) {
-            filesRev = descriptor.getFiles().stream().map(file -> fileRepository.findLastChangeRevision(file.getId()).orElseThrow())
+
+            var descriptorRev
+                = dataSourceDescriptorRepository.findLastChangeRevision(descriptor.getId()).orElseThrow();
+
+            var filesRev = descriptor.getFiles().stream()
+                .map(file -> fileRepository.findLastChangeRevision(file.getId()).orElseThrow())
                 .collect(Collectors.toList());
         }
 
-        var poolRev = dataPoolRepository.findLastChangeRevision(pool.getId()).orElseThrow();
-        var descriptorRev = pool.getDataSourceDescriptors().stream()
-            .map(descriptor -> dataSourceDescriptorRepository.findLastChangeRevision(descriptor.getId()).orElseThrow())
-            .collect(Collectors.toList());
-
-        //create DataSourceDescriptorMemento
-        var descriptorMemento = new DataSourceDescriptorMemento();
-        descriptorMemento.setType(type);
-        descriptorMemento.setDataSourceDescriptor(descriptorRev.stream().map(this::createEntityRevision).findFirst().orElseThrow());
-        descriptorMemento.setFiles(filesRev.stream().map(this::createEntityRevision).collect(Collectors.toList()));
-        dataSourceDescriptorMementoRepository.save(descriptorMemento);
-
-        List<DataSourceDescriptorMemento> descriptorMementos = new ArrayList<>();
-        descriptorMementos.add(descriptorMemento);
-
-        // create dataPoolMemento
         var dataPoolMemento = new DataPoolMemento();
         dataPoolMemento.setType(type);
         dataPoolMemento.setDataPool(createEntityRevision(poolRev));

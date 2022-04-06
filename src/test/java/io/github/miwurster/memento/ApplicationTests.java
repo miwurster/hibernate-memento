@@ -58,34 +58,46 @@ class ApplicationTests {
     @Test
     void testShouldSaveDatapoolWithDescriptorAndFiles() {
 
+        //ARRANGE
+
         //persist data pool
         var pool = buildPool();
-        pool = dataPoolManager.createDataPool(pool);
-        assertThat(dataPoolMementoRepository.findAll()).hasSize(1);
+        pool = dataPoolRepository.save(pool);
 
         //persist data source descriptor
         var descriptor = buildDescriptor();
-        descriptor.setDataPool(pool);
         descriptor = dataSourceDescriptorRepository.save(descriptor);
-
-        descriptor = dataSourceDescriptorRepository.findById(descriptor.getId()).orElseThrow();
-        assertThat(descriptor.getName()).isEqualTo("Data Source Descriptor");
-
-        pool = dataPoolRepository.findById(pool.getId()).orElseThrow();
-        assertThat(pool.getDataSourceDescriptors().contains(descriptor)).isTrue();
 
         //persist file
         var file = buildFile();
         file = fileRepository.save(file);
 
-        file = fileRepository.getById(file.getId());
-        assertThat(fileRepository.findAll()).hasSize(1);
-
         List<File> files = new ArrayList<>();
         files.add(file);
+
+        descriptor.setDataPool(pool);
         descriptor.setFiles(files);
         descriptor = dataSourceDescriptorRepository.save(descriptor);
+
+        List<DataSourceDescriptor> dataSourceDescriptors = new ArrayList<>();
+        dataSourceDescriptors.add(descriptor);
+        pool.setDataSourceDescriptors(dataSourceDescriptors);
+
+        pool = dataPoolRepository.save(pool);
+
+        //ACT
+        //create pool with memento
+        pool = dataPoolManager.createDataPool(pool);
+
+        //ASSERT
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(1);
+
+        descriptor = dataSourceDescriptorRepository.findById(descriptor.getId()).orElseThrow();
         assertThat(descriptor.getFiles()).hasSize(1);
+        assertThat(descriptor.getName()).isEqualTo("Data Source Descriptor");
+
+        pool = dataPoolRepository.findById(pool.getId()).orElseThrow();
+        assertThat(pool.getDataSourceDescriptors().contains(descriptor)).isTrue();
 
     }
 
@@ -332,7 +344,8 @@ class ApplicationTests {
         var file = new File();
         file.setName("new file");
         file.setMimeType("JPEG");
-        file.setFileUrl("www.bucket.com");
+        file.setFileUrl("www.test.com");
+        file.setCreatedAt(LocalDateTime.now());
         return file;
     }
 }

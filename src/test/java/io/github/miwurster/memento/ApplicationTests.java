@@ -1,13 +1,25 @@
 package io.github.miwurster.memento;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.InstanceOfAssertFactories.LOCAL_DATE_TIME;
 
 import io.github.miwurster.memento.entity.Article;
 import io.github.miwurster.memento.entity.Comment;
+import io.github.miwurster.memento.entity.DataPool;
+import io.github.miwurster.memento.entity.DataSourceDescriptor;
+import io.github.miwurster.memento.entity.File;
 import io.github.miwurster.memento.repository.ArticleMementoRepository;
 import io.github.miwurster.memento.repository.ArticleRepository;
 import io.github.miwurster.memento.repository.CommentRepository;
+import io.github.miwurster.memento.repository.DataPoolMementoRepository;
+import io.github.miwurster.memento.repository.DataPoolRepository;
+import io.github.miwurster.memento.repository.DataSourceDescriptorRepository;
+import io.github.miwurster.memento.repository.FileRepository;
 import io.github.miwurster.memento.service.ArticleManager;
+import io.github.miwurster.memento.service.DataPoolManager;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -28,14 +40,53 @@ class ApplicationTests {
     @Autowired
     private ArticleManager articleManager;
 
+    @Autowired
+    private DataPoolManager dataPoolManager;
+
+    @Autowired
+    private DataPoolMementoRepository dataPoolMementoRepository;
+
+    @Autowired
+    private DataSourceDescriptorRepository dataSourceDescriptorRepository;
+
+    @Autowired
+    private DataPoolRepository dataPoolRepository;
+
+    @Autowired
+    FileRepository fileRepository;
+
     @Test
-    void testShouldSaveAndRestoreDatapools() {
-        // TODO: Create Datapool-like entity
-        // TODO: Create DataSourceDescriptor-like entity
-        // TODO: Create File-like entity
-        // TODO: Create Repositories, etc.
-        // TODO: Create Memento abstraction
-        // ...
+    void testShouldSaveDatapoolWithDescriptorAndFiles() {
+
+        //persist data pool
+        var pool = buildPool();
+        pool = dataPoolManager.createDataPool(pool);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(1);
+
+        //persist data source descriptor
+        var descriptor = buildDescriptor();
+        descriptor.setDataPool(pool);
+        descriptor = dataSourceDescriptorRepository.save(descriptor);
+
+        descriptor = dataSourceDescriptorRepository.findById(descriptor.getId()).orElseThrow();
+        assertThat(descriptor.getName()).isEqualTo("Data Source Descriptor");
+
+        pool = dataPoolRepository.findById(pool.getId()).orElseThrow();
+        assertThat(pool.getDataSourceDescriptors().contains(descriptor)).isTrue();
+
+        //persist file
+        var file = buildFile();
+        file = fileRepository.save(file);
+
+        file = fileRepository.getById(file.getId());
+        assertThat(fileRepository.findAll()).hasSize(1);
+
+        List<File> files = new ArrayList<>();
+        files.add(file);
+        descriptor.setFiles(files);
+        descriptor = dataSourceDescriptorRepository.save(descriptor);
+        assertThat(descriptor.getFiles()).hasSize(1);
+
     }
 
     @Test
@@ -168,7 +219,7 @@ class ApplicationTests {
         assertThat(mementoRepository.findAll()).hasSize(10);
 
         article = articleRepository.findById(article.getId()).orElseThrow();
-        assertThat(article.getComments()).hasSize(0);
+        assertThat(article.getComments()).isEmpty();
 
         articleManager.undo(article);
         assertThat(mementoRepository.findAll()).hasSize(11);
@@ -183,7 +234,7 @@ class ApplicationTests {
         var article = new Article();
         article.setName("Test");
         article = articleRepository.save(article);
-        assertThat(articleRepository.count()).isGreaterThanOrEqualTo(1);
+        assertThat(articleRepository.count()).isPositive();
         var articleRev = articleRepository.findLastChangeRevision(article.getId()).orElseThrow();
         assertThat(articleRev.getMetadata().getRevisionType()).isEqualTo(RevisionType.INSERT);
         assertThat(articleRepository.findRevisions(article.getId()).getContent()).hasSize(1);
@@ -193,7 +244,7 @@ class ApplicationTests {
         comment.setName("Test");
         comment.setArticle(article);
         comment = commentRepository.save(comment);
-        assertThat(commentRepository.count()).isGreaterThanOrEqualTo(1);
+        assertThat(commentRepository.count()).isPositive();
         var commentRev = commentRepository.findLastChangeRevision(comment.getId()).orElseThrow();
         assertThat(commentRev.getMetadata().getRevisionType()).isEqualTo(RevisionType.INSERT);
         assertThat(commentRepository.findRevisions(comment.getId()).getContent()).hasSize(1);
@@ -256,5 +307,32 @@ class ApplicationTests {
 
     @Test
     void contextLoads() {
+    }
+
+    private DataPool buildPool() {
+        var dataPool = new DataPool();
+        dataPool.setName("Test pool");
+        dataPool.setShortDescription("short description");
+        dataPool.setDescription("description");
+        dataPool.setLicenceType("Free");
+        dataPool.setMetadata("metadata");
+        dataPool.setCreatedAt(LocalDateTime.now());
+        return dataPool;
+    }
+
+    private DataSourceDescriptor buildDescriptor() {
+        var descriptor = new DataSourceDescriptor();
+        descriptor.setName("Data Source Descriptor");
+        descriptor.setDescription("description");
+        descriptor.setCreatedAt(LocalDateTime.now());
+        return descriptor;
+    }
+
+    private File buildFile() {
+        var file = new File();
+        file.setName("new file");
+        file.setMimeType("JPEG");
+        file.setFileUrl("www.bucket.com");
+        return file;
     }
 }

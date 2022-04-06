@@ -30,7 +30,7 @@ public class DataPoolMemento extends Memento {
     private EntityRevision dataPool;
 
     @JoinColumn(name = "data_pool__data_source_descriptor_id")
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany
     private List<DataSourceDescriptorMemento> dataSourceDescriptors;
 
     @Override

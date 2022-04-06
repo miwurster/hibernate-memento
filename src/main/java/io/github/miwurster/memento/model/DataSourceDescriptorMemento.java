@@ -30,7 +30,7 @@ public class DataSourceDescriptorMemento extends Memento {
     @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     private EntityRevision dataSourceDescriptor;
 
-    @OneToMany
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "data_source_descriptor__file_id")
     private List<EntityRevision> files = new ArrayList<>();
 

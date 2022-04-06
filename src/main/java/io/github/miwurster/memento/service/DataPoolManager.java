@@ -56,12 +56,6 @@ public class DataPoolManager {
                 .collect(Collectors.toList());
         }
 
-        // System.out.println("Files Revision" + filesRev);
-
-//        var filesRev = dataSourceDescriptor.stream()
-//            .map(file -> fileRepository.findLastChangeRevision(file.getId()).orElseThrow())
-//            .collect(Collectors.toList());
-
         var poolRev = dataPoolRepository.findLastChangeRevision(pool.getId()).orElseThrow();
         var descriptorRev = pool.getDataSourceDescriptors().stream()
             .map(descriptor -> dataSourceDescriptorRepository.findLastChangeRevision(descriptor.getId()).orElseThrow())

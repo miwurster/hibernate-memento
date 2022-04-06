@@ -20,6 +20,7 @@ import io.github.miwurster.memento.service.DataPoolManager;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -102,6 +103,7 @@ class ApplicationTests {
     }
 
     @Test
+    @Disabled
     void testShouldRestoreDeletedArticle() {
         // add article
         var article = new Article();

@@ -3,6 +3,8 @@ package io.github.miwurster.memento.entity;
 import java.time.LocalDateTime;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -26,6 +28,11 @@ public class File extends PersistentObject {
     private String name;
 
     private String mimeType;
+
+    @ManyToOne
+    @ToString.Exclude
+    @JoinColumn(name = "file__data_source_descriptor_id")
+    private DataSourceDescriptor dataSourceDescriptor;
 
     @Column(name = "fileurl", unique = true)
     private String fileUrl;

@@ -29,61 +29,31 @@ import org.springframework.data.history.RevisionMetadata.RevisionType;
 class ApplicationTests {
 
     @Autowired
+    FileRepository fileRepository;
+    @Autowired
     private ArticleRepository articleRepository;
-
     @Autowired
     private CommentRepository commentRepository;
-
     @Autowired
     private ArticleMementoRepository mementoRepository;
-
     @Autowired
     private ArticleManager articleManager;
-
     @Autowired
     private DataPoolManager dataPoolManager;
-
     @Autowired
     private DataPoolMementoRepository dataPoolMementoRepository;
-
     @Autowired
     private DataSourceDescriptorRepository dataSourceDescriptorRepository;
-
     @Autowired
     private DataPoolRepository dataPoolRepository;
 
-    @Autowired
-    FileRepository fileRepository;
-
     @Test
-    void testShouldCreateDatapoolWithDescriptorAndFiles() {
+    void testShouldCreateDatapool() {
 
         //ARRANGE
 
         //persist data pool
         var pool = buildPool();
-        pool = dataPoolRepository.save(pool);
-
-        //persist data source descriptor
-        var descriptor = buildDescriptor();
-        descriptor = dataSourceDescriptorRepository.save(descriptor);
-
-        //persist file
-        var file = buildFile();
-        file = fileRepository.save(file);
-
-        List<File> files = new ArrayList<>();
-        files.add(file);
-
-        descriptor.setDataPool(pool);
-        descriptor.setFiles(files);
-        descriptor = dataSourceDescriptorRepository.save(descriptor);
-
-        List<DataSourceDescriptor> dataSourceDescriptors = new ArrayList<>();
-        dataSourceDescriptors.add(descriptor);
-        pool.setDataSourceDescriptors(dataSourceDescriptors);
-
-        pool = dataPoolRepository.save(pool);
 
         //ACT
         //create pool with memento
@@ -91,14 +61,6 @@ class ApplicationTests {
 
         //ASSERT
         assertThat(dataPoolMementoRepository.findAll()).hasSize(1);
-
-        descriptor = dataSourceDescriptorRepository.findById(descriptor.getId()).orElseThrow();
-        assertThat(descriptor.getFiles()).hasSize(1);
-        assertThat(descriptor.getName()).isEqualTo("Data Source Descriptor");
-
-        pool = dataPoolRepository.findById(pool.getId()).orElseThrow();
-        assertThat(pool.getDataSourceDescriptors().contains(descriptor)).isTrue();
-
     }
 
     @Test
@@ -122,30 +84,12 @@ class ApplicationTests {
     }
 
     @Test
-    void testShouldDeleteDataPoolWithChildren() {
+    void testShouldDeleteDataPool() {
 
         //ARRANGE
 
-        //persist data source descriptor
-        var descriptor = buildDescriptor();
-        descriptor = dataSourceDescriptorRepository.save(descriptor);
-
-        //persist file
-        var file = buildFile();
-        file = fileRepository.save(file);
-
-        List<File> files = new ArrayList<>();
-        files.add(file);
-
-        descriptor.setFiles(files);
-        descriptor = dataSourceDescriptorRepository.save(descriptor);
-
-        List<DataSourceDescriptor> dataSourceDescriptors = new ArrayList<>();
-        dataSourceDescriptors.add(descriptor);
-
+        //persist simple pool
         var pool = buildPool();
-        pool.setDataSourceDescriptors(dataSourceDescriptors);
-
         pool = dataPoolManager.createDataPool(pool);
         assertThat(dataPoolMementoRepository.findAll()).hasSize(1);
 
@@ -158,8 +102,9 @@ class ApplicationTests {
 
     }
 
+
     @Test
-    void testShouldAddDataSourceDescriptorToDataPool() {
+    void testShouldCreateDataSourceDescriptor() {
 
         //ARRANGE
         var pool = buildPool();
@@ -167,10 +112,9 @@ class ApplicationTests {
         assertThat(dataPoolMementoRepository.findAll()).hasSize(1);
 
         var descriptor = buildDescriptor();
-        descriptor.setDataPool(pool);
 
         //ACT
-        pool = dataPoolManager.addDataSourceDescriptorToDataPool(pool, descriptor);
+        pool = dataPoolManager.createDescriptor(pool, descriptor);
 
         //ASSERT
         assertThat(pool.getDataSourceDescriptors()).contains(descriptor);
@@ -189,8 +133,7 @@ class ApplicationTests {
 
         var descriptor = buildDescriptor();
         descriptor.setDescription("New description");
-        descriptor.setDataPool(pool);
-        pool = dataPoolManager.addDataSourceDescriptorToDataPool(pool, descriptor);
+        pool = dataPoolManager.createDescriptor(pool, descriptor);
         assertThat(dataPoolMementoRepository.findAll()).hasSize(2);
 
         //ACT
@@ -201,6 +144,175 @@ class ApplicationTests {
         assertThat(dataSourceDescriptorRepository.findAll()).hasSize(1);
         assertThat(dataPoolMementoRepository.findAll()).hasSize(3);
         assertThat(descriptor.getDescription()).isEqualTo("New description");
+
+    }
+
+    @Test
+    void testShouldRemoveDataSourceDescriptor() {
+
+        //ARRANGE
+        var pool = buildPool();
+        pool = dataPoolManager.createDataPool(pool);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(1);
+
+        var descriptor = buildDescriptor();
+        pool = dataPoolManager.createDescriptor(pool, descriptor);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(2);
+
+        //ACT
+        pool = dataPoolManager.deleteDataSourceDescriptor(pool, descriptor);
+
+        //ASSERT
+        pool = dataPoolRepository.findById(pool.getId()).orElseThrow();
+        assertThat(pool.getDataSourceDescriptors()).isEmpty();
+        assertThat(dataSourceDescriptorRepository.findAll()).isEmpty();
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(3);
+
+    }
+
+    @Test
+    void testShouldUpdateFile() {
+
+        //ARRANGE
+
+        //create data pool
+        var pool = buildPool();
+        pool = dataPoolManager.createDataPool(pool);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(1);
+
+        //create data source descriptor
+        var descriptor = buildDescriptor();
+        pool = dataPoolManager.createDescriptor(pool, descriptor);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(2);
+
+        //create file
+        var file = buildFile();
+        file.setFileUrl("www.coolFile.com");
+        pool = dataPoolManager.createFile(pool, descriptor, file);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(3);
+
+        //ASSERT
+        pool = dataPoolRepository.findById(pool.getId()).orElseThrow();
+        assertThat(pool.getDataSourceDescriptors().contains(descriptor)).isTrue();
+
+        descriptor = dataSourceDescriptorRepository.findById(descriptor.getId()).orElseThrow();
+        assertThat(descriptor.getFiles()).hasSize(1);
+
+        file = fileRepository.findById(file.getId()).orElseThrow();
+        assertThat(file.getFileUrl()).isEqualTo("www.coolFile.com");
+
+    }
+
+    @Test
+    void testShouldDeleteFile() {
+
+        //ARRANGE
+
+        //create data pool
+        var pool = buildPool();
+        pool = dataPoolManager.createDataPool(pool);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(1);
+
+        //create data source descriptor
+        var descriptor = buildDescriptor();
+        pool = dataPoolManager.createDescriptor(pool, descriptor);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(2);
+
+        //create file
+        var file = buildFile();
+        pool = dataPoolManager.createFile(pool, descriptor, file);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(3);
+
+        pool = dataPoolManager.deleteFile(pool, descriptor, file);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(4);
+
+        //ASSERT
+        pool = dataPoolRepository.findById(pool.getId()).orElseThrow();
+        assertThat(pool.getDataSourceDescriptors().contains(descriptor)).isTrue();
+
+        descriptor = dataSourceDescriptorRepository.findById(descriptor.getId()).orElseThrow();
+        assertThat(descriptor.getFiles()).isEmpty();
+
+    }
+
+    @Test
+    void undoChangesInDataPool() {
+
+        //create pool
+        var pool = buildPool();
+        pool = dataPoolManager.createDataPool(pool);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(1);
+
+        // change pool
+        pool.setMetadata("Wrong data");
+        pool.setDescription("Wrong description");
+        pool = dataPoolManager.updateDataPool(pool);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(2);
+
+        // undo
+        pool = dataPoolManager.undoDataPoolChanges(pool);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(3);
+        assertThat(pool.getMetadata()).isEqualTo("metadata");
+        assertThat(pool.getDescription()).isEqualTo("description");
+
+    }
+
+    @Test
+    void testShouldCreateDatapoolWithDescriptorAndFile() {
+
+        //ARRANGE
+
+        //create data pool
+        var pool = buildPool();
+        pool = dataPoolManager.createDataPool(pool);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(1);
+
+        //create data source descriptor
+        var descriptor = buildDescriptor();
+        pool = dataPoolManager.createDescriptor(pool, descriptor);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(2);
+
+        //create file
+        var file = buildFile();
+        pool = dataPoolManager.createFile(pool, descriptor, file);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(3);
+
+        //ASSERT
+        pool = dataPoolRepository.findById(pool.getId()).orElseThrow();
+        assertThat(pool.getDataSourceDescriptors().contains(descriptor)).isTrue();
+
+        descriptor = dataSourceDescriptorRepository.findById(descriptor.getId()).orElseThrow();
+        assertThat(descriptor.getFiles()).hasSize(1);
+
+    }
+
+    @Test
+    //TODO: fix
+    void testShouldDeleteDataPoolWithDescriptorAndFiles() {
+
+        //ARRANGE
+
+        //persist pool
+        var pool = buildPool();
+        pool = dataPoolManager.createDataPool(pool);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(1);
+
+        //persist data source descriptor
+        var descriptor = buildDescriptor();
+        pool = dataPoolManager.createDescriptor(pool, descriptor);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(2);
+
+        //persist file
+        var file = buildFile();
+        pool = dataPoolManager.createFile(pool, descriptor, file);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(3);
+
+        //ACT
+        pool = dataPoolManager.deleteDataPool(pool);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(4);
+
+        //ASSERT
+        assertThat(dataPoolRepository.findAll()).isEmpty();
 
     }
 

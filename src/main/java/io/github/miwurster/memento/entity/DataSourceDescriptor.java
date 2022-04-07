@@ -34,10 +34,11 @@ public class DataSourceDescriptor extends PersistentObject {
 
     @ToString.Exclude
     @ManyToOne
-    @JoinColumn(name = "data_pool_clone_id")
+    @JoinColumn(name = "data_pool_id")
     private DataPool dataPool;
 
-    @OneToMany
+    @ToString.Exclude
+    @OneToMany(mappedBy = "dataSourceDescriptor")
     private List<File> files = new ArrayList<>();
 
     @CreatedDate

@@ -10,11 +10,13 @@ import io.github.miwurster.memento.model.EntityRevision;
 import io.github.miwurster.memento.model.MementoType;
 import io.github.miwurster.memento.repository.DataPoolMementoRepository;
 import io.github.miwurster.memento.repository.DataPoolRepository;
+import io.github.miwurster.memento.repository.DataSourceDescriptorMementoRepository;
 import io.github.miwurster.memento.repository.DataSourceDescriptorRepository;
 import io.github.miwurster.memento.repository.FileRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import javax.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.history.Revision;
 import org.springframework.stereotype.Service;
@@ -30,6 +32,8 @@ public class DataPoolManager {
     private final DataSourceDescriptorRepository dataSourceDescriptorRepository;
 
     private final FileRepository fileRepository;
+
+    private final DataSourceDescriptorMementoRepository dataSourceDescriptorMementoRepository;
 
     public DataPool createDataPool(DataPool dataPool) {
 
@@ -65,9 +69,7 @@ public class DataPoolManager {
         var descriptors = savedDataPool.getDataSourceDescriptors();
 
         // iterate over descriptors and remove the files
-        for (DataSourceDescriptor descriptor : descriptors) {
-            fileRepository.deleteAll(descriptor.getFiles());
-        }
+        descriptors.forEach(d -> fileRepository.deleteAll(d.getFiles()));
 
         // remove descriptors
         dataSourceDescriptorRepository.deleteAll(descriptors);
@@ -168,6 +170,69 @@ public class DataPoolManager {
         return persistedDataPool;
     }
 
+    public DataPool revertTo(DataPoolMemento memento) {
+
+        // handle data pool revert
+
+
+        //memento.getDataSourceDescriptors().forEach(m -> revertTo(m));
+
+        return null;
+    }
+
+    @Transactional
+    public DataSourceDescriptor undo(DataSourceDescriptor descriptor) {
+        var persistedDescriptor = dataSourceDescriptorRepository
+            .findById(descriptor.getId()).orElseThrow();
+        var mementos = dataSourceDescriptorMementoRepository
+            .findAllByDataSourceDescriptorId(persistedDescriptor.getId());
+        var beforeLastMemento = mementos.get(mementos.size() - 2);
+
+        persistedDescriptor = revertTo(beforeLastMemento);
+
+        return persistedDescriptor;
+
+    }
+
+    @Transactional
+    public DataSourceDescriptor revertTo(DataSourceDescriptorMemento memento) {
+
+        //fetch memento from db
+        var persistedMemento = dataSourceDescriptorMementoRepository
+            .findById(memento.getId()).orElseThrow();
+
+        //get the revision
+        var descriptorRevision = dataSourceDescriptorRepository.findRevision(
+                persistedMemento.getDataSourceDescriptor().getEntityId(),
+                persistedMemento.getDataSourceDescriptor().getRevisionNumber())
+            .orElseThrow();
+
+        //get the entity
+        var descriptor = dataSourceDescriptorRepository.findById(
+                persistedMemento.getDataSourceDescriptor().getEntityId())
+            .orElseThrow();
+
+        //update properties
+        descriptor.setName(descriptorRevision.getEntity().getName());
+        descriptor.setDescription(descriptorRevision.getEntity().getDescription());
+
+        //update memento
+        var descriptorMemento = new DataSourceDescriptorMemento();
+        descriptorMemento.setType(MementoType.UPDATE);
+        descriptorMemento.setDataSourceDescriptor(new EntityRevision(descriptor.getId(),
+            descriptorRevision.getRequiredRevisionNumber()));
+
+        //persist memento
+        dataSourceDescriptorMementoRepository.save(descriptorMemento);
+
+        //save descriptor
+        dataSourceDescriptorRepository.save(descriptor);
+
+        return descriptor;
+    }
+
+
+    @Transactional
     public DataPool undoDataPoolChanges(DataPool dataPool) {
 
         var persistedDataPool = dataPoolRepository.findById(dataPool.getId()).orElseThrow();
@@ -180,13 +245,13 @@ public class DataPoolManager {
                 beforeLastMemento.getDataPool().getEntityId(), beforeLastMemento.getDataPool().getRevisionNumber())
             .orElseThrow();
 
-//        var descriptorRevision = beforeLastMemento.getDataSourceDescriptors()
-//            .stream()
-//            .map(d -> dataSourceDescriptorRepository.findRevision(
-//                    d.getDataSourceDescriptor().getEntityId(),
-//                    d.getDataSourceDescriptor().getRevisionNumber())
-//                .orElseThrow())
-//            .collect(Collectors.toList());
+        var descriptorRevision = beforeLastMemento.getDataSourceDescriptors()
+            .stream()
+            .map(d -> dataSourceDescriptorRepository.findRevision(
+                    d.getDataSourceDescriptor().getEntityId(),
+                    d.getDataSourceDescriptor().getRevisionNumber())
+                .orElseThrow())
+            .collect(Collectors.toList());
 
         // update properties
         persistedDataPool = dataPoolRepository.findById(dataPool.getId()).orElseThrow();
@@ -197,6 +262,44 @@ public class DataPoolManager {
 
         // update pool
         persistedDataPool = dataPoolRepository.save(persistedDataPool);
+
+        // set the freshly updated pool
+        var descriptorsToRestore = descriptorRevision.stream()
+            .map(Revision::getEntity)
+            .collect(Collectors.toList());
+
+        for (DataSourceDescriptor dataSourceDescriptor : descriptorsToRestore) {
+            dataSourceDescriptor.setDataPool(persistedDataPool);
+        }
+
+        List<DataSourceDescriptor> descriptorsToSave = new ArrayList<>();
+        List<DataSourceDescriptor> descriptorsToDelete = new ArrayList<>();
+
+        for (DataSourceDescriptor descriptor : persistedDataPool.getDataSourceDescriptors()) {
+
+            if (descriptorsToRestore.contains(descriptor)) {
+                // replace attributes
+                var i = descriptorsToRestore.indexOf(descriptor);
+                var descriptorToRestore = descriptorsToRestore.get(i);
+                descriptor.setName(descriptorToRestore.getName());
+                descriptor.setDescription(descriptorToRestore.getDescription());
+
+                descriptorsToSave.add(descriptor);
+            } else {
+                descriptorsToDelete.add(descriptor);
+            }
+        }
+
+        // in case the pool doesn't have the descriptor we want to add it
+        for (DataSourceDescriptor descriptor : descriptorsToRestore) {
+            if (!persistedDataPool.getDataSourceDescriptors().contains(descriptor)) {
+                descriptorsToSave.add(descriptor);
+            }
+        }
+
+        dataSourceDescriptorRepository.deleteAll(descriptorsToDelete);
+        dataSourceDescriptorRepository.saveAll(descriptorsToSave);
+
         var dataPoolMemento = createDataPoolMemento(persistedDataPool, MementoType.UPDATE);
         dataPoolMementoRepository.save(dataPoolMemento);
 

@@ -7,18 +7,20 @@ import io.github.miwurster.memento.entity.Comment;
 import io.github.miwurster.memento.entity.DataPool;
 import io.github.miwurster.memento.entity.DataSourceDescriptor;
 import io.github.miwurster.memento.entity.File;
+import io.github.miwurster.memento.model.DataSourceDescriptorMemento;
+import io.github.miwurster.memento.model.EntityRevision;
+import io.github.miwurster.memento.model.MementoType;
 import io.github.miwurster.memento.repository.ArticleMementoRepository;
 import io.github.miwurster.memento.repository.ArticleRepository;
 import io.github.miwurster.memento.repository.CommentRepository;
 import io.github.miwurster.memento.repository.DataPoolMementoRepository;
 import io.github.miwurster.memento.repository.DataPoolRepository;
+import io.github.miwurster.memento.repository.DataSourceDescriptorMementoRepository;
 import io.github.miwurster.memento.repository.DataSourceDescriptorRepository;
 import io.github.miwurster.memento.repository.FileRepository;
 import io.github.miwurster.memento.service.ArticleManager;
 import io.github.miwurster.memento.service.DataPoolManager;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,22 +32,33 @@ class ApplicationTests {
 
     @Autowired
     FileRepository fileRepository;
+
     @Autowired
     private ArticleRepository articleRepository;
+
     @Autowired
     private CommentRepository commentRepository;
+
     @Autowired
     private ArticleMementoRepository mementoRepository;
+
     @Autowired
     private ArticleManager articleManager;
+
     @Autowired
     private DataPoolManager dataPoolManager;
+
     @Autowired
     private DataPoolMementoRepository dataPoolMementoRepository;
+
     @Autowired
     private DataSourceDescriptorRepository dataSourceDescriptorRepository;
+
     @Autowired
     private DataPoolRepository dataPoolRepository;
+
+    @Autowired
+    private DataSourceDescriptorMementoRepository dataSourceDescriptorMementoRepository;
 
     @Test
     void testShouldCreateDatapool() {
@@ -236,28 +249,6 @@ class ApplicationTests {
     }
 
     @Test
-    void undoChangesInDataPool() {
-
-        //create pool
-        var pool = buildPool();
-        pool = dataPoolManager.createDataPool(pool);
-        assertThat(dataPoolMementoRepository.findAll()).hasSize(1);
-
-        // change pool
-        pool.setMetadata("Wrong data");
-        pool.setDescription("Wrong description");
-        pool = dataPoolManager.updateDataPool(pool);
-        assertThat(dataPoolMementoRepository.findAll()).hasSize(2);
-
-        // undo
-        pool = dataPoolManager.undoDataPoolChanges(pool);
-        assertThat(dataPoolMementoRepository.findAll()).hasSize(3);
-        assertThat(pool.getMetadata()).isEqualTo("metadata");
-        assertThat(pool.getDescription()).isEqualTo("description");
-
-    }
-
-    @Test
     void testShouldCreateDatapoolWithDescriptorAndFile() {
 
         //ARRANGE
@@ -286,8 +277,8 @@ class ApplicationTests {
 
     }
 
+
     @Test
-    //TODO: fix
     void testShouldDeleteDataPoolWithDescriptorAndFiles() {
 
         //ARRANGE
@@ -308,12 +299,116 @@ class ApplicationTests {
         assertThat(dataPoolMementoRepository.findAll()).hasSize(3);
 
         //ACT
+        pool = dataPoolRepository.findById(pool.getId()).orElseThrow();
         pool = dataPoolManager.deleteDataPool(pool);
         assertThat(dataPoolMementoRepository.findAll()).hasSize(4);
 
         //ASSERT
         assertThat(dataPoolRepository.findAll()).isEmpty();
 
+    }
+
+    @Test
+    @Disabled
+    void undoChangesInDataPool() {
+
+        //create pool
+        var pool = buildPool();
+        pool = dataPoolManager.createDataPool(pool);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(1);
+
+        // change pool
+        pool.setMetadata("Wrong data");
+        pool.setDescription("Wrong description");
+        pool = dataPoolManager.updateDataPool(pool);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(2);
+
+        // undo
+        pool = dataPoolManager.undoDataPoolChanges(pool);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(3);
+        assertThat(pool.getMetadata()).isEqualTo("metadata");
+        assertThat(pool.getDescription()).isEqualTo("description");
+
+        //add descriptor
+        var descriptor = buildDescriptor();
+        pool = dataPoolManager.createDescriptor(pool, descriptor);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(4);
+        pool = dataPoolRepository.findById(pool.getId()).orElseThrow();
+        assertThat(pool.getDataSourceDescriptors()).contains(descriptor);
+        assertThat(descriptor.getName()).isEqualTo("Data Source Descriptor");
+
+        // change descriptor
+        descriptor.setName("Better name");
+        pool = dataPoolManager.updateDataSourceDescriptor(pool, descriptor);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(5);
+        assertThat(descriptor.getName()).isEqualTo("Better name");
+
+        //undo changes in descriptor
+        pool = dataPoolManager.undoDataPoolChanges(pool);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(6);
+        descriptor = dataSourceDescriptorRepository.findById(descriptor.getId()).orElseThrow();
+        assertThat(descriptor.getName()).isEqualTo("Data Source Descriptor");
+
+        //add file
+        var file = buildFile();
+        pool = dataPoolManager.createFile(pool, descriptor, file);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(7);
+        assertThat(descriptor.getFiles()).hasSize(1);
+
+        // change file
+        file.setName("New file name");
+        pool = dataPoolManager.updateFile(pool, descriptor, file);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(8);
+        assertThat(file.getName()).isEqualTo("New file name");
+
+        //undo
+        pool = dataPoolManager.undoDataPoolChanges(pool);
+        assertThat(dataPoolMementoRepository.findAll()).hasSize(9);
+        file = fileRepository.findById(file.getId()).orElseThrow();
+        assertThat(file.getName()).isEqualTo("new file");
+    }
+
+    @Test
+    void testShouldUndoChangesInDescriptor() {
+
+        //persist descriptor
+        var descriptor = buildDescriptor();
+        dataSourceDescriptorRepository.save(descriptor);
+
+        var memento = createMemento(
+            descriptor,
+            MementoType.CREATE,
+            1
+            );
+        assertThat(dataSourceDescriptorRepository.findAll()).hasSize(1);
+        assertThat(dataSourceDescriptorMementoRepository.findAll()).hasSize(1);
+
+        //change descriptor
+        descriptor.setName("New test descriptor");
+        dataSourceDescriptorRepository.save(descriptor);
+        memento = createMemento(
+            descriptor,
+            MementoType.UPDATE,
+            2
+        );
+        assertThat(descriptor.getName()).isEqualTo("New test descriptor");
+        assertThat(dataSourceDescriptorMementoRepository.findAll()).hasSize(2);
+
+        //revert changes
+        descriptor = dataPoolManager.undo(descriptor);
+        assertThat(dataSourceDescriptorMementoRepository.findAll()).hasSize(3);
+
+        descriptor = dataSourceDescriptorRepository.findById(descriptor.getId()).orElseThrow();
+        assertThat(descriptor.getName()).isEqualTo("Data Source Descriptor");
+
+    }
+
+    private DataSourceDescriptorMemento createMemento(DataSourceDescriptor descriptor, MementoType type, Integer revisionNumber) {
+        var memento = new DataSourceDescriptorMemento();
+        memento.setType(type);
+        memento.setDataSourceDescriptor(new EntityRevision(descriptor.getId(), revisionNumber));
+        dataSourceDescriptorMementoRepository.save(memento);
+        return memento;
     }
 
     @Test

@@ -8,4 +8,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface FileRepository extends JpaRepository<File, UUID>, RevisionRepository<File, UUID, Integer> {
+
 }

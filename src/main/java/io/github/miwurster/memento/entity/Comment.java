@@ -1,8 +1,11 @@
 package io.github.miwurster.memento.entity;
 
+import java.util.ArrayList;
+import java.util.List;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -25,6 +28,10 @@ public class Comment extends PersistentObject {
     @ToString.Exclude
     @JoinColumn(name = "article_id", nullable = false)
     private Article article;
+
+    @ToString.Exclude
+    @OneToMany(mappedBy = "comment")
+    private List<File> files = new ArrayList<>();
 
     @Override
     public boolean equals(Object o) {

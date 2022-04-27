@@ -25,13 +25,13 @@ public class ArticleMemento extends Memento {
     @Enumerated(EnumType.STRING)
     private MementoType type;
 
-    @JoinColumn(name = "article_id")
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToOne
+    @JoinColumn(name = "article_memento__article")
     private EntityRevision article;
 
-    @JoinColumn(name = "article_comment_id")
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<EntityRevision> comments;
+    @OneToMany
+    @JoinColumn(name = "article_memento__comment_mementos")
+    private List<CommentMemento> commentMementos;
 
     @Override
     public boolean equals(Object o) {

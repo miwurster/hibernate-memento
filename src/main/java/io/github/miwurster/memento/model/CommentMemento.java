@@ -1,7 +1,7 @@
 package io.github.miwurster.memento.model;
 
+import java.util.ArrayList;
 import java.util.List;
-import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
@@ -20,18 +20,18 @@ import lombok.ToString;
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor
-public class DataPoolMemento extends Memento {
+public class CommentMemento extends Memento {
 
     @Enumerated(EnumType.STRING)
     private MementoType type;
 
-    @JoinColumn(name = "data_pool_id")
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
-    private EntityRevision dataPool;
+    @OneToOne
+    @JoinColumn(name = "comment_memento__comment")
+    private EntityRevision comment;
 
-    @JoinColumn(name = "data_pool__data_source_descriptor_id")
     @OneToMany
-    private List<DataSourceDescriptorMemento> dataSourceDescriptors;
+    @JoinColumn(name = "comment_memento__files")
+    private List<EntityRevision> files = new ArrayList<>();
 
     @Override
     public boolean equals(Object o) {
@@ -42,5 +42,4 @@ public class DataPoolMemento extends Memento {
     public int hashCode() {
         return super.hashCode();
     }
-
 }

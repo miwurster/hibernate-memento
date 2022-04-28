@@ -2,6 +2,7 @@ package io.github.miwurster.memento.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
@@ -25,11 +26,11 @@ public class CommentMemento extends Memento {
     @Enumerated(EnumType.STRING)
     private MementoType type;
 
-    @OneToOne
+    @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "comment_memento__comment")
     private EntityRevision comment;
 
-    @OneToMany
+    @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "comment_memento__files")
     private List<EntityRevision> files = new ArrayList<>();
 

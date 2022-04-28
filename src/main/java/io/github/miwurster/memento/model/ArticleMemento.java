@@ -25,7 +25,7 @@ public class ArticleMemento extends Memento {
     @Enumerated(EnumType.STRING)
     private MementoType type;
 
-    @OneToOne
+    @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "article_memento__article")
     private EntityRevision article;
 

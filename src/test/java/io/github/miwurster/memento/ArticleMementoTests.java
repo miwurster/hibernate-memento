@@ -5,10 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.github.miwurster.memento.entity.Article;
 import io.github.miwurster.memento.entity.Comment;
 import io.github.miwurster.memento.entity.File;
-import io.github.miwurster.memento.repository.ArticleMementoRepository;
-import io.github.miwurster.memento.repository.ArticleRepository;
-import io.github.miwurster.memento.repository.CommentRepository;
+import io.github.miwurster.memento.model.MementoType;
 import io.github.miwurster.memento.service.ArticleManager;
+import io.github.miwurster.memento.service.ArticleMementoManager;
 import io.github.miwurster.memento.service.CommentManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,35 +17,26 @@ import org.springframework.boot.test.context.SpringBootTest;
 public class ArticleMementoTests {
 
     @Autowired
-    private ArticleRepository articleRepository;
-
-    @Autowired
-    private CommentRepository commentRepository;
-
-    @Autowired
-    private ArticleMementoRepository mementoRepository;
-
-    @Autowired
     private ArticleManager articleManager;
 
     @Autowired
     private CommentManager commentManager;
 
+    @Autowired
+    private ArticleMementoManager articleMementoManager;
+
     @Test
     void basicTests() {
-
         // add article
         var article = new Article();
         article.setName("Article 1");
         article = articleManager.createArticle(article);
-
         // add comment
         var comment = new Comment();
         comment.setName("Comment 1");
         comment.setArticle(article);
         comment = commentManager.createComment(article, comment);
-
-        // add files
+        // add file
         var file = new File();
         file.setName("File 1");
         commentManager.addFile(comment, file);
@@ -59,33 +49,40 @@ public class ArticleMementoTests {
         articleManager.deleteArticle(article);
     }
 
-//    @Test
-//    void testShouldRestoreCommentWithSameIdBeforeDelete() {
-//        // add article
-//        var article = new Article();
-//        article.setName("ArticleFoo");
-//        article = articleManager.createArticle(article);
-//
-//        // add comment
-//        var comment = new Comment();
-//        comment.setName("Comment 1");
-//        comment.setArticle(article);
-//        article = articleManager.createComment(article, comment);
-//
-//        // remember to assert later
-//        var deletedComment = article.getComments().stream().findFirst().orElseThrow();
-//
-//        // delete comment
-//        article = articleManager.deleteComment(article, comment);
-//
-//        // undo and assert
-//        article = articleManager.undo(article);
-//        var restoredComment = article.getComments().stream().findFirst().orElseThrow();
-//
-//        assertThat(restoredComment.getId()).isEqualTo(deletedComment.getId());
-//        assertThat(restoredComment).isEqualTo(deletedComment);
-//    }
-//
+    @Test
+    void testShouldCreateMementos() {
+
+        // add article
+        var article = new Article();
+        article.setName("Article 1");
+        article = articleManager.createArticle(article);
+
+        article = articleManager.findById(article.getId());
+        articleMementoManager.createMemento(article, MementoType.CREATE);
+
+        // add comment
+        var comment = new Comment();
+        comment.setName("Comment 1");
+        comment.setArticle(article);
+        comment = commentManager.createComment(article, comment);
+
+        article = articleManager.findById(article.getId());
+        articleMementoManager.createMemento(article, MementoType.UPDATE);
+
+        // add file
+        var file = new File();
+        file.setName("File 1");
+        commentManager.addFile(comment, file);
+
+        article = articleManager.findById(article.getId());
+        articleMementoManager.createMemento(article, MementoType.UPDATE);
+
+        article = articleManager.findById(article.getId());
+        var mementos = articleMementoManager.getMementos(article);
+
+        assertThat(mementos).hasSize(3);
+    }
+
 //    @Test
 //    void testShouldUndoChanges() {
 //

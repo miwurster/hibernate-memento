@@ -4,7 +4,9 @@ import io.github.miwurster.memento.entity.Article;
 import io.github.miwurster.memento.model.ArticleMemento;
 import io.github.miwurster.memento.model.MementoType;
 import io.github.miwurster.memento.repository.ArticleMementoRepository;
+import io.github.miwurster.memento.repository.ArticleRepository;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,7 +15,11 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ArticleMementoManager implements MementoManager<ArticleMemento, Article> {
 
+    private final ArticleRepository articleRepository;
+
     private final ArticleMementoRepository articleMementoRepository;
+
+    private final CommentMementoManager commentMementoManager;
 
     @Override
     public List<ArticleMemento> getMementos(Article article) {
@@ -23,7 +29,15 @@ public class ArticleMementoManager implements MementoManager<ArticleMemento, Art
     @Override
     @Transactional
     public ArticleMemento createMemento(Article article, MementoType type) {
-        return null;
+        var articleRev = articleRepository.findLastChangeRevision(article.getId()).orElseThrow();
+        var commentMementos = article.getComments().stream()
+            .map(comment -> commentMementoManager.createMemento(comment, type))
+            .collect(Collectors.toList());
+        ArticleMemento memento = new ArticleMemento();
+        memento.setType(type);
+        memento.setArticle(createEntityRevision(articleRev));
+        memento.setCommentMementos(commentMementos);
+        return articleMementoRepository.save(memento);
     }
 
     @Override
@@ -33,27 +47,6 @@ public class ArticleMementoManager implements MementoManager<ArticleMemento, Art
     }
 
 
-
-//    private ArticleMemento createMemento(Article article, MementoType type) {
-//        // collect revisions for
-//        var articleRev = articleRepository.findLastChangeRevision(article.getId()).orElseThrow();
-//        var commentsRev = article.getComments().stream()
-//            .map(c -> commentRepository.findLastChangeRevision(c.getId()).orElseThrow())
-//            .collect(Collectors.toList());
-//        // create memento
-//        ArticleMemento memento = new ArticleMemento();
-//        memento.setType(type);
-//        memento.setArticle(createEntityRevision(articleRev));
-//        memento.setComments(commentsRev.stream().map(this::createEntityRevision).collect(Collectors.toList()));
-//        return memento;
-//    }
-//
-//    private EntityRevision createEntityRevision(Revision<Integer, ? extends PersistentObject> revision) {
-//        EntityRevision rev = new EntityRevision();
-//        rev.setEntityId(revision.getEntity().getId());
-//        rev.setRevisionNumber(revision.getRequiredRevisionNumber());
-//        return rev;
-//    }
 //
 //    public Article undo(Article a) {
 //        var article = articleRepository.findById(a.getId()).orElseThrow();

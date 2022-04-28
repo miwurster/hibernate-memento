@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.github.miwurster.memento.entity.Article;
 import io.github.miwurster.memento.entity.Comment;
 import io.github.miwurster.memento.entity.File;
-import io.github.miwurster.memento.model.MementoType;
+import io.github.miwurster.memento.entity.memento.MementoType;
 import io.github.miwurster.memento.service.ArticleManager;
 import io.github.miwurster.memento.service.ArticleMementoManager;
 import io.github.miwurster.memento.service.CommentManager;

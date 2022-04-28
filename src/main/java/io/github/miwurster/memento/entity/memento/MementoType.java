@@ -1,4 +1,4 @@
-package io.github.miwurster.memento.model;
+package io.github.miwurster.memento.entity.memento;
 
 public enum MementoType {
 

@@ -1,8 +1,8 @@
 package io.github.miwurster.memento.service;
 
 import io.github.miwurster.memento.entity.Article;
-import io.github.miwurster.memento.model.ArticleMemento;
-import io.github.miwurster.memento.model.MementoType;
+import io.github.miwurster.memento.entity.ArticleMemento;
+import io.github.miwurster.memento.entity.memento.MementoType;
 import io.github.miwurster.memento.repository.ArticleMementoRepository;
 import io.github.miwurster.memento.repository.ArticleRepository;
 import java.util.List;
@@ -19,7 +19,7 @@ public class ArticleMementoManager implements MementoManager<ArticleMemento, Art
 
     private final ArticleMementoRepository articleMementoRepository;
 
-    private final CommentMementoManager commentMementoManager;
+    private final CommentRevisionManager commentRevisionManager;
 
     @Override
     public List<ArticleMemento> getMementos(Article article) {
@@ -30,13 +30,14 @@ public class ArticleMementoManager implements MementoManager<ArticleMemento, Art
     @Transactional
     public ArticleMemento createMemento(Article article, MementoType type) {
         var articleRev = articleRepository.findLastChangeRevision(article.getId()).orElseThrow();
-        var commentMementos = article.getComments().stream()
-            .map(comment -> commentMementoManager.createMemento(comment, type))
+        var commentRevisions = article.getComments().stream()
+            .map(commentRevisionManager::createRevision)
             .collect(Collectors.toList());
         ArticleMemento memento = new ArticleMemento();
         memento.setType(type);
-        memento.setArticle(createEntityRevision(articleRev));
-        memento.setCommentMementos(commentMementos);
+        memento.setEntityId(articleRev.getEntity().getId());
+        memento.setRevisionNumber(articleRev.getRequiredRevisionNumber());
+        memento.setValue(new ArticleMemento.Value(commentRevisions));
         return articleMementoRepository.save(memento);
     }
 
@@ -45,7 +46,6 @@ public class ArticleMementoManager implements MementoManager<ArticleMemento, Art
     public Article revertTo(ArticleMemento memento) {
         return null;
     }
-
 
 //
 //    public Article undo(Article a) {

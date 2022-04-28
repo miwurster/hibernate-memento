@@ -1,6 +1,6 @@
-package io.github.miwurster.memento.model;
+package io.github.miwurster.memento.entity;
 
-import io.github.miwurster.memento.entity.PersistentObject;
+import io.github.miwurster.memento.entity.support.PersistentObject;
 import javax.persistence.DiscriminatorColumn;
 import javax.persistence.Entity;
 import javax.persistence.Inheritance;

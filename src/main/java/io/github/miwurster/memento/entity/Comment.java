@@ -1,5 +1,6 @@
 package io.github.miwurster.memento.entity;
 
+import io.github.miwurster.memento.entity.support.PersistentObject;
 import java.util.ArrayList;
 import java.util.List;
 import javax.persistence.Entity;

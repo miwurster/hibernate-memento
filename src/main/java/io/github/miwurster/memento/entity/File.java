@@ -1,5 +1,6 @@
 package io.github.miwurster.memento.entity;
 
+import io.github.miwurster.memento.entity.support.PersistentObject;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;

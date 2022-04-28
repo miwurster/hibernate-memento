@@ -1,4 +1,4 @@
-package io.github.miwurster.memento.entity;
+package io.github.miwurster.memento.entity.support;
 
 import java.io.Serializable;
 import org.hibernate.HibernateException;

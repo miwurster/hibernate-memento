@@ -1,7 +1,6 @@
 package io.github.miwurster.memento.entity;
 
 import io.github.miwurster.memento.entity.memento.CommentRevision;
-import io.github.miwurster.memento.entity.memento.EntityRevision;
 import io.github.miwurster.memento.entity.memento.MementoType;
 import java.util.List;
 import java.util.UUID;

@@ -1,4 +1,4 @@
-package io.github.miwurster.memento.service;
+package io.github.miwurster.memento.service.support;
 
 import io.github.miwurster.memento.entity.memento.EntityRevision;
 import io.github.miwurster.memento.entity.support.PersistentObject;

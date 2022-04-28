@@ -9,6 +9,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ArticleMementoRepository extends MementoRepository<ArticleMemento> {
 
-    @Query(value = "SELECT a FROM ArticleMemento a WHERE a.entityId = ?1 ORDER BY a.revisionNumber ASC")
+    @Query(value = "SELECT a FROM ArticleMemento a WHERE a.entityId = ?1 ORDER BY a.modifiedAt ASC")
     List<ArticleMemento> findAllByArticleId(UUID articleId);
 }

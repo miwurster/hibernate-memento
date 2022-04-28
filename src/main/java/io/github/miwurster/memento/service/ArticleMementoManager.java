@@ -5,6 +5,7 @@ import io.github.miwurster.memento.entity.ArticleMemento;
 import io.github.miwurster.memento.entity.memento.MementoType;
 import io.github.miwurster.memento.repository.ArticleMementoRepository;
 import io.github.miwurster.memento.repository.ArticleRepository;
+import io.github.miwurster.memento.service.support.MementoManager;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.transaction.Transactional;

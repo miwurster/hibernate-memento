@@ -48,13 +48,9 @@ public class ArticleMementoManager implements MementoManager<ArticleMemento, Art
         return articleMementoRepository.save(memento);
     }
 
-//        var article = articleRepository.findById(a.getId()).orElseThrow();
-//        var mementos = mementoRepository.findAllByArticleId(article.getId());
-//        var m = mementos.get(mementos.size() - 2);
-
     @Override
     @Transactional
-    public Article revertTo(ArticleMemento memento) {
+    public void revertTo(ArticleMemento memento) {
 
         // get revision
         var articleRevision = articleRepository.findRevision(memento.getEntityId(), memento.getRevisionNumber()).orElseThrow();
@@ -69,26 +65,21 @@ public class ArticleMementoManager implements MementoManager<ArticleMemento, Art
         List<Comment> commentsToDelete = new ArrayList<>();
         var commentRevisions = memento.getValue().getCommentRevisions();
         for (Comment comment : article.getComments()) {
-            var filter = commentRevisions.stream().filter(r -> comment.getId().equals(r.getEntityId()));
-            if (filter.count() == 1) {
-                var revision = filter.findFirst().orElseThrow();
+            if (commentRevisions.stream().filter(r -> comment.getId().equals(r.getEntityId())).count() == 1) {
+                var revision = commentRevisions.stream().filter(r -> comment.getId().equals(r.getEntityId())).findFirst().orElseThrow();
                 commentRevisionManager.revertTo(revision);
             } else {
                 commentsToDelete.add(comment);
             }
         }
-
         var commentIds = article.getComments().stream().map(PersistentObject::getId).collect(Collectors.toList());
         for (CommentRevision revision : commentRevisions) {
             if (!commentIds.contains(revision.getEntityId())) {
                 commentRevisionManager.revertTo(revision);
             }
         }
-
         for (Comment comment : commentsToDelete) {
             commentManager.deleteComment(comment);
         }
-
-        return articleRepository.findById(article.getId()).orElseThrow();
     }
 }

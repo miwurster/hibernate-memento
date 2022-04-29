@@ -9,5 +9,5 @@ public interface MementoManager<M, E> extends AbstractMementoManager {
 
     M createMemento(E entity, MementoType type);
 
-    E revertTo(M memento);
+    void revertTo(M memento);
 }

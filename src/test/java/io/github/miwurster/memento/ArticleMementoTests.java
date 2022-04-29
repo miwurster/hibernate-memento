@@ -83,6 +83,46 @@ public class ArticleMementoTests {
         assertThat(mementos).hasSize(3);
     }
 
+    @Test
+    void testShouldRevertToPreviousMemento() {
+
+        // add article
+        var article = new Article();
+        article.setName("Article 1");
+        article = articleManager.createArticle(article);
+
+        article = articleManager.findById(article.getId());
+        articleMementoManager.createMemento(article, MementoType.CREATE);
+
+        // add comment
+        var comment = new Comment();
+        comment.setName("Comment 1");
+        comment.setArticle(article);
+        comment = commentManager.createComment(article, comment);
+
+        article = articleManager.findById(article.getId());
+        articleMementoManager.createMemento(article, MementoType.UPDATE);
+
+        // change comment
+        comment.setName("Change Comment 1");
+        comment = commentManager.updateComment(article, comment);
+
+        article = articleManager.findById(article.getId());
+        articleMementoManager.createMemento(article, MementoType.UPDATE);
+
+        // revert to previous memento
+        var mementos = articleMementoManager.getMementos(article);
+        var memento = mementos.get(mementos.size() - 2);
+
+        articleMementoManager.revertTo(memento);
+        article = articleManager.findById(article.getId());
+        assertThat(article.getComments().get(0).getName()).isEqualTo("Comment 1");
+
+        articleMementoManager.revertTo(mementos.get(0));
+        article = articleManager.findById(article.getId());
+        assertThat(article.getComments()).hasSize(0);
+    }
+
 //    @Test
 //    void testShouldUndoChanges() {
 //

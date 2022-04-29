@@ -38,7 +38,7 @@ public class CommentRevisionManager implements RevisionManager<CommentRevision, 
 
     @Override
     @Transactional
-    public Comment revertTo(CommentRevision revision) {
+    public void revertTo(CommentRevision revision) {
 
         // get revision
         var commentRevision = commentRepository.findRevision(revision.getEntityId(), revision.getRevisionNumber()).orElseThrow();
@@ -78,7 +78,5 @@ public class CommentRevisionManager implements RevisionManager<CommentRevision, 
         }
         fileRepository.deleteAll(filesToDelete);
         fileRepository.saveAll(filesToSave);
-
-        return commentRepository.findById(comment.getId()).orElseThrow();
     }
 }

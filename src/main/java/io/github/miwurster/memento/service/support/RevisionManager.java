@@ -4,5 +4,5 @@ public interface RevisionManager<R, E> extends AbstractMementoManager {
 
     R createRevision(E entity);
 
-    E revertTo(R revision);
+    void revertTo(R revision);
 }

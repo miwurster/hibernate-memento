@@ -2,10 +2,14 @@ package io.github.miwurster.memento.service;
 
 import io.github.miwurster.memento.entity.Article;
 import io.github.miwurster.memento.entity.ArticleMemento;
+import io.github.miwurster.memento.entity.Comment;
+import io.github.miwurster.memento.entity.memento.CommentRevision;
 import io.github.miwurster.memento.entity.memento.MementoType;
+import io.github.miwurster.memento.entity.support.PersistentObject;
 import io.github.miwurster.memento.repository.ArticleMementoRepository;
 import io.github.miwurster.memento.repository.ArticleRepository;
 import io.github.miwurster.memento.service.support.MementoManager;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.transaction.Transactional;
@@ -21,6 +25,8 @@ public class ArticleMementoManager implements MementoManager<ArticleMemento, Art
     private final ArticleMementoRepository articleMementoRepository;
 
     private final CommentRevisionManager commentRevisionManager;
+
+    private final CommentManager commentManager;
 
     @Override
     public List<ArticleMemento> getMementos(Article article) {
@@ -42,65 +48,47 @@ public class ArticleMementoManager implements MementoManager<ArticleMemento, Art
         return articleMementoRepository.save(memento);
     }
 
-    @Override
-    @Transactional
-    public Article revertTo(ArticleMemento memento) {
-        return null;
-    }
-
-//
-//    public Article undo(Article a) {
 //        var article = articleRepository.findById(a.getId()).orElseThrow();
 //        var mementos = mementoRepository.findAllByArticleId(article.getId());
 //        var m = mementos.get(mementos.size() - 2);
-//
-//        var articleRevision = articleRepository.findRevision(m.getArticle().getEntityId(), m.getArticle().getRevisionNumber()).orElseThrow();
-//        var commentRevisions = m.getComments().stream()
-//            .map(e -> commentRepository.findRevision(e.getEntityId(), e.getRevisionNumber()).orElseThrow())
-//            .collect(Collectors.toList());
-//
-//        article = articleRepository.findById(m.getArticle().getEntityId()).orElseThrow();
-//        // update properties
-//        article.setName(articleRevision.getEntity().getName());
-//
-//        // update article
-//        article = articleRepository.save(article);
-//
-//        var commentsToRestore = commentRevisions.stream().map(Revision::getEntity).collect(Collectors.toList());
-//        for (Comment comment : commentsToRestore) {
-//            comment.setArticle(article);
-//        }
-//
-//        List<Comment> commentsToSave = new ArrayList<>();
-//        List<Comment> commentsToDelete = new ArrayList<>();
-//
-//        for (Comment comment : article.getComments()) {
-//            if (commentsToRestore.contains(comment)) {
-//                // replace attributes
-//                var i = commentsToRestore.indexOf(comment);
-//                var commentToRestore = commentsToRestore.get(i);
-//                comment.setName(commentToRestore.getName());
-//
-//                commentsToSave.add(comment);
-//            } else {
-//                commentsToDelete.add(comment);
-//            }
-//        }
-//
-//        for (Comment comment : commentsToRestore) {
-//            if (!article.getComments().contains(comment)) {
-//                commentsToSave.add(comment);
-//            }
-//        }
-//
-//        commentRepository.deleteAll(commentsToDelete);
-//        commentRepository.saveAll(commentsToSave);
-//
-//        // create memento of fresh article
-//        article = articleRepository.findById(article.getId()).orElseThrow();
-//        var articleMemento = createMemento(article, MementoType.UPDATE);
-//        mementoRepository.save(articleMemento);
-//
-//        return article;
-//    }
+
+    @Override
+    @Transactional
+    public Article revertTo(ArticleMemento memento) {
+
+        // get revision
+        var articleRevision = articleRepository.findRevision(memento.getEntityId(), memento.getRevisionNumber()).orElseThrow();
+        // get current version
+        var article = articleRepository.findById(memento.getEntityId()).orElseThrow();
+        // update properties
+        article.setName(articleRevision.getEntity().getName());
+        // save entity
+        article = articleRepository.save(article);
+
+        // revert comments
+        List<Comment> commentsToDelete = new ArrayList<>();
+        var commentRevisions = memento.getValue().getCommentRevisions();
+        for (Comment comment : article.getComments()) {
+            var filter = commentRevisions.stream().filter(r -> comment.getId().equals(r.getEntityId()));
+            if (filter.count() == 1) {
+                var revision = filter.findFirst().orElseThrow();
+                commentRevisionManager.revertTo(revision);
+            } else {
+                commentsToDelete.add(comment);
+            }
+        }
+
+        var commentIds = article.getComments().stream().map(PersistentObject::getId).collect(Collectors.toList());
+        for (CommentRevision revision : commentRevisions) {
+            if (!commentIds.contains(revision.getEntityId())) {
+                commentRevisionManager.revertTo(revision);
+            }
+        }
+
+        for (Comment comment : commentsToDelete) {
+            commentManager.deleteComment(comment);
+        }
+
+        return articleRepository.findById(article.getId()).orElseThrow();
+    }
 }

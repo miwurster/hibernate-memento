@@ -94,6 +94,20 @@ public class ArticleMementoTests {
         article = articleManager.findById(article.getId());
         articleMementoManager.createMemento(article, MementoType.CREATE);
 
+        // change article name
+        article.setName("Change Article 1");
+        article = articleManager.updateArticle(article);
+        assertThat(article.getName()).isEqualTo("Change Article 1");
+
+        article = articleManager.findById(article.getId());
+        articleMementoManager.createMemento(article, MementoType.UPDATE);
+
+        // revert to initial state
+        var mementos = articleMementoManager.getMementos(article);
+        articleMementoManager.revertTo(mementos.get(0));
+        article = articleManager.findById(article.getId());
+        assertThat(article.getName()).isEqualTo("Article 1");
+
         // add comment
         var comment = new Comment();
         comment.setName("Comment 1");
@@ -106,21 +120,46 @@ public class ArticleMementoTests {
         // change comment
         comment.setName("Change Comment 1");
         comment = commentManager.updateComment(article, comment);
+        assertThat(comment.getName()).isEqualTo("Change Comment 1");
 
         article = articleManager.findById(article.getId());
         articleMementoManager.createMemento(article, MementoType.UPDATE);
 
         // revert to previous memento
-        var mementos = articleMementoManager.getMementos(article);
-        var memento = mementos.get(mementos.size() - 2);
-
-        articleMementoManager.revertTo(memento);
+        mementos = articleMementoManager.getMementos(article);
+        articleMementoManager.revertTo(mementos.get(mementos.size() - 2));
         article = articleManager.findById(article.getId());
         assertThat(article.getComments().get(0).getName()).isEqualTo("Comment 1");
 
+        // revert to initial state
         articleMementoManager.revertTo(mementos.get(0));
         article = articleManager.findById(article.getId());
         assertThat(article.getComments()).hasSize(0);
+
+        // add two comments
+        comment = new Comment();
+        comment.setName("Comment 1");
+        comment.setArticle(article);
+        commentManager.createComment(article, comment);
+
+        comment = new Comment();
+        comment.setName("Comment 2");
+        comment.setArticle(article);
+        comment = commentManager.createComment(article, comment);
+
+        article = articleManager.findById(article.getId());
+        articleMementoManager.createMemento(article, MementoType.UPDATE);
+
+        // remove one comment
+        commentManager.deleteComment(comment);
+        article = articleManager.findById(article.getId());
+        assertThat(article.getComments()).hasSize(1);
+
+        // revert to previous memento
+        mementos = articleMementoManager.getMementos(article);
+        articleMementoManager.revertTo(mementos.get(mementos.size() - 2));
+        article = articleManager.findById(article.getId());
+        assertThat(article.getComments()).hasSize(2);
     }
 
 //    @Test

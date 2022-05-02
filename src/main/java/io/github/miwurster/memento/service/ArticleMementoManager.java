@@ -55,7 +55,7 @@ public class ArticleMementoManager implements MementoManager<ArticleMemento, Art
         // get revision
         var articleRevision = articleRepository.findRevision(memento.getEntityId(), memento.getRevisionNumber()).orElseThrow();
         // get current version
-        var article = articleRepository.findById(memento.getEntityId()).orElseThrow();
+        var article = articleRepository.findById(memento.getEntityId()).orElse(articleRevision.getEntity());
         // update properties
         article.setName(articleRevision.getEntity().getName());
         // save entity

@@ -43,7 +43,7 @@ public class CommentRevisionManager implements RevisionManager<CommentRevision, 
         // get revision
         var commentRevision = commentRepository.findRevision(revision.getEntityId(), revision.getRevisionNumber()).orElseThrow();
         // get current version
-        var comment = commentRepository.findById(revision.getEntityId()).orElseThrow();
+        var comment = commentRepository.findById(revision.getEntityId()).orElse(commentRevision.getEntity());
         // update properties
         comment.setName(commentRevision.getEntity().getName());
         // save entity
